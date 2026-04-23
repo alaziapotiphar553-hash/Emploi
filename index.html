@@ -7,23 +7,22 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Tous les styles identiques à la version précédente */
-        .glass-card { background: rgba(172, 201, 253, 0.9); backdrop-filter: blur(12px); border: 1px solid ; }
+        .glass-card { background: rgba(39, 158, 236, 0.9); backdrop-filter: blur(12px); border: 1px solid ; }
         .sidebar-item.active { background: #FBBF24 !important; color: #1E3A8A !important; }
         .sidebar-item:not(.active):hover { background: rgba(255,255,255,0.2); transform: translateX(4px); }
         .transition-smooth { transition: all 0.2s ease; }
         .toast { animation: fadeInUp 0.3s ease-out forwards; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        button, .btn, .role-btn, .level-select, #pdfExportBtn, #pdfExportAllBtn, #publishFileBtn, .logout-btn, .home-btn, .downloadPublishedBtn {
+        button, .btn, .role-btn, .level-select, #pdfExportBtn, #pdfExportAllBtn, #publishFileBtn, #publishAllBtn, .logout-btn, .home-btn, .downloadPublishedBtn {
             transition: all 0.25s ease-in-out !important;
         }
-        button:hover, .btn:hover, .role-btn:hover, .level-select:hover, #pdfExportBtn:hover, #pdfExportAllBtn:hover, #publishFileBtn:hover, .logout-btn:hover, .home-btn:hover, .downloadPublishedBtn:hover {
+        button:hover, .btn:hover, .role-btn:hover, .level-select:hover, #pdfExportBtn:hover, #pdfExportAllBtn:hover, #publishFileBtn:hover, #publishAllBtn:hover, .logout-btn:hover, .home-btn:hover, .downloadPublishedBtn:hover {
             transform: translateY(-2px) scale(1.02) !important;
             filter: brightness(1.05) !important;
             box-shadow: 0 8px 15px rgba(0,0,0,0.2) !important;
         }
-        button:active, .btn:active, .role-btn:active, .level-select:active, #pdfExportBtn:active, #pdfExportAllBtn:active, #publishFileBtn:active, .logout-btn:active, .home-btn:active, .downloadPublishedBtn:active {
+        button:active, .btn:active, .role-btn:active, .level-select:active, #pdfExportBtn:active, #pdfExportAllBtn:active, #publishFileBtn:active, #publishAllBtn:active, .logout-btn:active, .home-btn:active, .downloadPublishedBtn:active {
             transform: translateY(0px) scale(0.98) !important;
         }
         
@@ -164,6 +163,7 @@
                 <a href="#" data-page="sessions" class="sidebar-item admin-only flex items-center p-3 rounded-xl gap-3"><i class="fas fa-file-alt w-5"></i> Séances</a>
             </nav>
             <div class="mt-auto pt-6 border-t border-blue-700/50 text-xs space-y-2">
+                <button id="resetDataBtn" class="w-full bg-red-600/70 hover:bg-red-600 p-2 rounded-lg text-sm font-semibold transition"><i class="fas fa-database mr-1"></i> Réinitialiser tout</button>
                 <button id="homeBtn" class="w-full home-btn p-2 rounded-lg text-sm font-semibold"><i class="fas fa-home mr-1"></i> Accueil</button>
                 <button id="logoutBtn" class="w-full logout-btn p-2 rounded-lg text-sm font-semibold"><i class="fas fa-sign-out-alt mr-1"></i> Déconnexion</button>
                 <div class="text-center text-blue-200 mt-3">Session 2025-2026</div>
@@ -180,7 +180,7 @@
     <div class="login-card text-center">
         <div class="mb-6">
             <i class="fas fa-calendar-alt text-5xl text-blue-700"></i>
-            <h1 class="text-3xl font-bold text-blue-900 mt-2">INSTA-</h1>
+            <h1 class="text-3xl font-bold text-blue-900 mt-2">INSTA-EDT</h1>
             <p class="text-gray-600">Gestion des emplois du temps</p>
         </div>
         <div class="space-y-4">
@@ -213,7 +213,7 @@
     ];
     const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const LEVELS = ['L1', 'L2', 'L3'];
-    const NATURES = ['CT', 'TP', 'TD', 'ET', 'ER' ,'CC'];
+    const NATURES = ['CT', 'TP', 'TD', 'ET', 'ER'];
 
     let teachers = [], rooms = [], sessions = [];
     let logoDataURL = null, backgroundImageURL = null, sidebarLogoURL = localStorage.getItem('sidebarLogo') || null;
@@ -223,7 +223,7 @@
     let editSessionId = null, editTeacherId = null, editRoomId = null;
     let currentSelectedLevel = 'L1';
     
-    let lastPublishedFile = localStorage.getItem('insta_published_file') || null;
+    let lastPublishedFileAll = localStorage.getItem('insta_published_all') || null;
 
     function updateSidebarLogo() {
         const img = document.getElementById('sidebarLogoImg');
@@ -247,7 +247,17 @@
     const STORAGE={TEACHERS:'insta_teachers_officiel', ROOMS:'insta_rooms_officiel', SESSIONS:'insta_sessions_officiel'};
     function persistAll(){ localStorage.setItem(STORAGE.TEACHERS,JSON.stringify(teachers)); localStorage.setItem(STORAGE.ROOMS,JSON.stringify(rooms)); localStorage.setItem(STORAGE.SESSIONS,JSON.stringify(sessions)); }
     function loadData(){ teachers=JSON.parse(localStorage.getItem(STORAGE.TEACHERS)||'[]'); rooms=JSON.parse(localStorage.getItem(STORAGE.ROOMS)||'[]'); sessions=JSON.parse(localStorage.getItem(STORAGE.SESSIONS)||'[]'); }
-    function resetAllData(){ teachers=[]; rooms=[]; sessions=[]; persistAll(); showToast("Données réinitialisées","success"); renderCurrentPage(); }
+    function resetAllData(){ 
+        teachers=[]; rooms=[]; sessions=[]; 
+        persistAll(); 
+        // Supprimer également les publications
+        localStorage.removeItem('insta_published_file');
+        localStorage.removeItem('insta_published_all');
+        localStorage.removeItem('insta_published_timestamp');
+        localStorage.removeItem('insta_published_level');
+        showToast("Données réinitialisées", "success"); 
+        renderCurrentPage(); 
+    }
 
     function checkConflict(newSession,excludeId=null){
         let slotExists=SLOTS.some(slot=>slot.debut===newSession.start && slot.fin===newSession.end && !slot.isPause);
@@ -266,10 +276,9 @@
     }
     function getTeacherWeeklyHours(teacherId,excludeId=null){ let total=0; for(let s of sessions){ if(excludeId && s.id===excludeId) continue; if(s.teacherId===teacherId) total+=getDurationHours(s.start,s.end); } return total; }
 
-    // ---------- GÉNÉRATION PDF OFFICIEL EXACTEMENT COMME AVANT ----------
+    // ---------- GÉNÉRATION PDF OFFICIEL ----------
     function generateHTMLForLevel(niveau){
         const sessionsNiveau = sessions.filter(s => s.level === niveau);
-        // Créer une grille [jour][heure] de session
         let grid = {};
         JOURS.forEach(j => { grid[j] = {}; });
         for (let s of sessionsNiveau) {
@@ -283,8 +292,7 @@
         let bgImageStyle = backgroundImageURL ? `background-image: url('${backgroundImageURL}'); background-size: 60% auto; background-repeat: no-repeat; background-position: center;` : "";
         let logoHtml = logoDataURL ? `<img src="${logoDataURL}" style="display: block; margin: 0 auto; width:55px; height:55px; object-fit: contain;">` : "";
         
-        let tableHtml = `
-        <div class="content" style="position: relative; background-color: white;">
+        let tableHtml = `<div class="content" style="position: relative; background-color: white;">
             ${backgroundImageURL ? `<div class="bg-image" style="${bgImageStyle} opacity: 0.15; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;"></div>` : ""}
             <div style="position: relative; z-index: 1;">
                 <div class="header">
@@ -309,10 +317,8 @@
                             <th>Enseignants</th>
                         </tr>
                     </thead>
-                    <tbody>
-        `;
+                    <tbody>`;
         
-        // Génération des lignes pour chaque jour
         for (let jour of JOURS) {
             for (let idx = 0; idx < SLOTS.length; idx++) {
                 const slot = SLOTS[idx];
@@ -321,80 +327,57 @@
                 const natureClass = session ? `nature-${session.nature}` : "";
                 
                 if (idx === 0) {
-                    tableHtml += `<tr ${!isPause ? 'class="session-row"' : ''}><td rowspan="5" style="vertical-align:middle; font-weight:bold;">${jour}</td>`;
+                    tableHtml += `<tr${!isPause ? ' class="session-row"' : ''}><td rowspan="5" style="vertical-align:middle; font-weight:bold;">${jour}</td>`;
                 } else {
-                    tableHtml += `<tr ${!isPause ? 'class="session-row"' : ''}>`;
+                    tableHtml += `<tr${!isPause ? ' class="session-row"' : ''}>`;
                 }
                 
-                tableHtml += `<td ${isPause ? 'class="pause"' : ''}>${slot.label}</td>`;
-                
+                tableHtml += `<td${isPause ? ' class="pause"' : ''}>${slot.label}</td>`;
                 if (isPause) {
-                    tableHtml += `<td colspan="3" class="pause">Pause</td>`;
+                    tableHtml += `<td colspan="3" class="pause">Pause<\/td>`;
                 } else {
                     const matiere = session ? session.subject : "";
                     const nature = session ? (session.nature || "CT") : "";
                     const salle = session ? (rooms.find(r => r.id === session.roomId)?.name || "") : "";
                     const enseignant = session ? (teachers.find(t => t.id === session.teacherId)?.name || "") : "";
-                    tableHtml += `<td>${matiere}</td><td class="${natureClass}">${nature}</td><td>${salle}</td><td>${enseignant}</td>`;
+                    tableHtml += `<td>${matiere}<\/td><td class="${natureClass}">${nature}<\/td><td>${salle}<\/td><td>${enseignant}<\/td>`;
                 }
-                tableHtml += `</tr>`;
+                tableHtml += `<\/tr>`;
             }
         }
         
-        tableHtml += `
-                    </tbody>
-                </table>
-            </div>
-            <div class="signature-section" style="position: relative; z-index: 1;">
-                <div class="footer-date">Abéché le ${dateStr}</div>
-                <div class="signature">
-                    <b>Chef de Section GI</b><br>
-                    <u>MADINA ALI IZERIK</u><br>
-                    (Signature & Cachet)
-                </div>
-            </div>
-        </div>
-        `;
+        tableHtml += `</tbody><\/table><\/div><div class="signature-section" style="position: relative; z-index: 1;"><div class="footer-date">Abéché le ${dateStr}<\/div><div class="signature"><b>Chef de Section GI<\/b><br><u>MADINA ALI IZERIK<\/u><br>(Signature & Cachet)<\/div><\/div><\/div>`;
         return tableHtml;
     }
 
     function getFullPDFHTML(level){
-        return `<!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>Emploi du temps ${level}</title>
-            <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                @page { size: A4 landscape; margin: 0.4cm; }
-                body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 8.2pt; margin:0; padding:0; background-color: white; }
-                .content { padding: 3px; border-radius: 2px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; page-break-after: avoid; position: relative; background-color: ; }
-                .header { text-align: center; margin-bottom: 1px; }
-                .inst-name { font-weight: bold; font-size: 8.5pt; margin-top: 1px; }
-                table { width: 100%; border-collapse: collapse; margin-top: 2px; }
-                th, td { border: 1px solid ; padding: 1px 1px; text-align: center; vertical-align: middle; }
-                th { background-color: ; : bold; }
-                .title-row { background-color: ; }
-                .pause { background-color: #ffff00 !important; : bold; }
-                .session-row { background-color: ; }
-                .header-info { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 1px; font-size: 8pt; }
-                .signature-section { margin-top: 3px; display: flex; justify-content: space-between; align-items: flex-end; }
-                .footer-date { font-size: 7pt; }
-                .signature { text-align: center; font-size: 7pt; }
-                .col-jours { width: 10%; }
-                .col-horaire { width: 13%; }
-                .col-matiere { width: 30%; }
-                .nature-CT { background-color: }
-                .nature-TP { background-color: ; }
-                .nature-TD { background-color: ; }
-                .nature-ET { background-color: ; }
-                .nature-ER { background-color: #e2d5f5; }
-            </style>
-        </head>
-        <body>
-            ${generateHTMLForLevel(level)}
-        </body>
-        </html>`;
+        return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Emploi du temps ${level}<\/title><style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            @page { size: A4 landscape; margin: 0.4cm; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 8.2pt; margin:0; padding:0; background-color: white; }
+            .content { padding: 3px; border-radius: 2px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; page-break-after: avoid; position: relative; background-color: white; }
+            .header { text-align: center; margin-bottom: 1px; }
+            .inst-name { font-weight: bold; font-size: 8.5pt; margin-top: 1px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 2px; }
+            th, td { border: 1px solid #111; padding: 1px 1px; text-align: center; vertical-align: middle; }
+            th { background-color: ; font-weight: bold; }
+            .title-row { background-color: #e9ecef; }
+            .pause { background-color: #ffff00 !important; font-weight: bold; }
+            .session-row { background-color: #f5f5f5; }
+            .header-info { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 1px; font-size: 8pt; }
+            .signature-section { margin-top: 3px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .footer-date { font-size: 7pt; }
+            .signature { text-align: center; font-size: 7pt; }
+            .col-jours { width: 10%; }
+            .col-horaire { width: 13%; }
+            .col-matiere { width: 30%; }
+            .nature-CT { background-color: ; }
+            .nature-TP { background-color: ; }
+            .nature-TD { background-color: ; }
+            .nature-ET { background-color: #f8d7da; }
+            .nature-ER { background-color: #e2d5f5; }
+            .nature-CC { background-color: #e2d5f5; }
+        <\/style><\/head><body>${generateHTMLForLevel(level)}<\/body><\/html>`;
     }
 
     async function exporterPDFOfficiel(niveau){
@@ -406,7 +389,7 @@
     }
     
     async function exporterAllLevelsPDF(){
-        let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Emplois du temps complets (L1/L2/L3)</title><style>
+        let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Emplois du temps complets (L1/L2/L3)<\/title><style>
             *{margin:0;padding:0;box-sizing:border-box;}
             @page{size:A4 landscape;margin:0.4cm;}
             body{font-family:'Segoe UI',Arial,sans-serif;font-size:8.2pt;margin:0;padding:0;background-color:white;}
@@ -414,9 +397,9 @@
             .header{text-align:center;margin-bottom:1px;}
             .inst-name{font-weight:bold;font-size:8.5pt;margin-top:1px;}
             table{width:100%;border-collapse:collapse;margin-top:2px;}
-            th,td{border:1px solid #111;padding:1px 1px;text-align:center;vertical-align:middle;}
-            th{background-color:#f2f2f2;font-weight:bold;}
-            .title-row{background-color:#e9ecef;}
+            th,td{border:1px solid ;padding:1px 1px;text-align:center;vertical-align:middle;}
+            th{background-color:;:bold;}
+            .title-row{background-color:;}
             .pause{background-color:#ffff00 !important;font-weight:bold;}
             .session-row{background-color:;}
             .header-info{display:flex;justify-content:space-between;font-weight:bold;margin-bottom:1px;font-size:8pt;}
@@ -425,9 +408,9 @@
             .signature{text-align:center;font-size:7pt;}
             .col-jours{width:10%;}.col-horaire{width:13%;}.col-matiere{width:30%;}
             .nature-CT{background-color:#d4edda;}.nature-TP{background-color:#fff3cd;}.nature-TD{background-color:#d1ecf1;}.nature-ET{background-color:#f8d7da;}.nature-ER{background-color:#e2d5f5;}
-        </style></head><body>`;
+        <\/style><\/head><body>`;
         for(let level of LEVELS) html += generateHTMLForLevel(level);
-        html += `</body></html>`;
+        html += `<\/body><\/html>`;
         const win = window.open();
         win.document.write(html);
         win.document.close();
@@ -435,17 +418,37 @@
         showToast("PDF des 3 niveaux généré", "success");
     }
 
-    // Publication
-    function publishCurrentSchedule(){
+    // Publication des trois niveaux en un seul fichier
+    function publishAllSchedules(){
         if(currentRole !== 'admin') return;
-        const htmlContent = getFullPDFHTML(currentSelectedLevel);
-        localStorage.setItem('insta_published_file', htmlContent);
-        localStorage.setItem('insta_published_timestamp', new Date().toISOString());
-        localStorage.setItem('insta_published_level', currentSelectedLevel);
-        showToast(`Emploi du temps ${currentSelectedLevel} publié !`, "success");
+        let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Emplois du temps complets (L1/L2/L3)<\/title><style>
+            *{margin:0;padding:0;box-sizing:border-box;}
+            @page{size:A4 landscape;margin:0.4cm;}
+            body{font-family:'Segoe UI',Arial,sans-serif;font-size:8.2pt;margin:0;padding:0;background-color:white;}
+            .content{padding:3px;border-radius:2px;height:100%;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always;position:relative;background-color:white;}
+            .header{text-align:center;margin-bottom:1px;}
+            .inst-name{font-weight:bold;font-size:8.5pt;margin-top:1px;}
+            table{width:100%;border-collapse:collapse;margin-top:2px;}
+            th,td{border:1px solid ;padding:1px 1px;text-align:center;vertical-align:middle;}
+            th{background-color::bold;}
+            .title-row{background-color:#e9ecef;}
+            .pause{background-color:#ffff00 !important;font-weight:bold;}
+            .session-row{background-color:#f5f5f5;}
+            .header-info{display:flex;justify-content:space-between;font-weight:bold;margin-bottom:1px;font-size:8pt;}
+            .signature-section{margin-top:3px;display:flex;justify-content:space-between;align-items:flex-end;}
+            .footer-date{font-size:7pt;}
+            .signature{text-align:center;font-size:7pt;}
+            .col-jours{width:10%;}.col-horaire{width:13%;}.col-matiere{width:30%;}
+            .nature-CT{background-color:#d4edda;}.nature-TP{background-color:#fff3cd;}.nature-TD{background-color:#d1ecf1;}.nature-ET{background-color:#f8d7da;}.nature-ER{background-color:#e2d5f5;}
+        <\/style><\/head><body>`;
+        for(let level of LEVELS) html += generateHTMLForLevel(level);
+        html += `<\/body><\/html>`;
+        localStorage.setItem('insta_published_all', html);
+        localStorage.setItem('insta_published_all_timestamp', new Date().toISOString());
+        showToast(`Emplois du temps (L1, L2, L3) publiés en un seul fichier !`, "success");
     }
 
-    // ---------- TABLEAU DE BORD ADMIN (version simple) ----------
+    // ---------- TABLEAU DE BORD ADMIN ----------
     function renderDashboard(){
         const html = `
             <div class="glass-card rounded-3xl p-8 shadow-xl text-center">
@@ -459,30 +462,17 @@
                     </div>
                     <button id="pdfExportBtn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full shadow-md"><i class="fas fa-file-pdf mr-2"></i> Exporter ce niveau</button>
                     <button id="pdfExportAllBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-full shadow-md"><i class="fas fa-file-pdf mr-2"></i> Exporter tous les niveaux</button>
-                    <button id="publishFileBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-full shadow-md ml-2"><i class="fas fa-cloud-upload-alt mr-2"></i> Publier cet emploi</button>
+                    <button id="publishAllBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-full shadow-md ml-2"><i class="fas fa-cloud-upload-alt mr-2"></i> Publier tous les niveaux</button>
                 </div>
                 <div class="mt-8 border-t pt-6 text-left">
                     <h3 class="font-bold text-lg mb-3">Personnalisation</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium">Logo de la sidebar</label>
-                            <input type="file" id="sidebarLogoUpload" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-full file:bg-blue-50 file:text-blue-700">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium">Logo (en-tête PDF)</label>
-                            <input type="file" id="logoUpload" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-full file:bg-blue-50 file:text-blue-700">
-                            <div id="logoPreview" class="mt-2 hidden"><img id="logoImg" class="h-12 w-auto" alt="Logo"></div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium">Image d'arrière-plan PDF (optionnelle)</label>
-                            <input type="file" id="bgUpload" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-full file:bg-blue-50 file:text-blue-700">
-                            <p class="text-xs text-gray-400 mt-1">Centrée, réduite (60%), transparente (opacité 0.15)</p>
-                        </div>
+                        <div><label class="block text-sm font-medium">Logo de la sidebar</label><input type="file" id="sidebarLogoUpload" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-full file:bg-blue-50 file:text-blue-700"></div>
+                        <div><label class="block text-sm font-medium">Logo (en-tête PDF)</label><input type="file" id="logoUpload" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-full file:bg-blue-50 file:text-blue-700"><div id="logoPreview" class="mt-2 hidden"><img id="logoImg" class="h-12 w-auto" alt="Logo"></div></div>
+                        <div><label class="block text-sm font-medium">Image d'arrière-plan PDF (optionnelle)</label><input type="file" id="bgUpload" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-full file:bg-blue-50 file:text-blue-700"><p class="text-xs text-gray-400 mt-1">Centrée, réduite (60%), transparente (opacité 0.15)</p></div>
                     </div>
                 </div>
-                <div class="mt-8 text-sm text-gray-500">
-                    <i class="fas fa-info-circle"></i> Les séances sont gérées dans l'onglet "Séances". Respectez les créneaux fixes.
-                </div>
+                <div class="mt-8 text-sm text-gray-500"><i class="fas fa-info-circle"></i> Les séances sont gérées dans l'onglet "Séances". Respectez les créneaux fixes.</div>
             </div>
         `;
         document.getElementById('dynamicContent').innerHTML = html;
@@ -495,7 +485,7 @@
         document.getElementById('bgUpload')?.addEventListener('change', e => {
             const file=e.target.files[0]; if(file){ const reader=new FileReader(); reader.onload=ev=>{ backgroundImageURL=ev.target.result; showToast("Image de fond chargée","success"); }; reader.readAsDataURL(file); }
         });
-        document.getElementById('publishFileBtn')?.addEventListener('click', publishCurrentSchedule);
+        document.getElementById('publishAllBtn')?.addEventListener('click', publishAllSchedules);
         document.getElementById('pdfExportBtn')?.addEventListener('click',()=>exporterPDFOfficiel(currentSelectedLevel));
         document.getElementById('pdfExportAllBtn')?.addEventListener('click',()=>exporterAllLevelsPDF());
         document.querySelectorAll('.level-select').forEach(btn=>{
@@ -552,7 +542,7 @@
         <div><label>Nature *</label><select id="sessionNature" class="w-full border rounded-lg p-2">${natureOptions}</select></div>
         <div><label>Statut</label><select id="sessionStatus" class="w-full border rounded-lg p-2"><option ${sessionData?.status==='permanent'?'selected':''}>permanent</option><option ${sessionData?.status==='missionnaire'?'selected':''}>missionnaire</option></select></div></div>
         <button onclick="saveSession()" class="bg-blue-700 text-white px-6 py-2 rounded-full shadow">${isEditing?'Mettre à jour':'Créer séance'}</button>
-        <hr><h3 class="text-xl font-bold">Liste des séances existantes</h3><div class="overflow-x-auto"><table class="w-full bg-white/60 rounded-xl"><thead class="bg-blue-800 text-white"><tr><th>Matière</th><th>Niv.</th><th>Jour</th><th>Créneau</th><th>Nature</th><th>Enseignant</th><th>Salle</th><th>Actions</th></td></thead><tbody>${sessions.map(s=>{const t=teachers.find(tt=>tt.id===s.teacherId); const r=rooms.find(rr=>rr.id===s.roomId); const slotLabel=SLOTS.find(sl=>sl.debut===s.start&&sl.fin===s.end)?.label||`${s.start}-${s.end}`; return `<tr><td class="p-2">${s.subject}<td class="p-2">${s.level}<td class="p-2">${s.day}<td class="p-2">${slotLabel}<td class="p-2">${s.nature||'CT'}<td class="p-2">${t?.name||'?'} (${t?.subject||''})<td class="p-2">${r?.name||'?'}<td class="p-2"><button onclick="editSessionById('${s.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteSessionConfirm('${s.id}')" class="text-red-600"><i class="fas fa-trash"></i></button>`}).join('')}</tbody>}</div></div>`;
+        <hr><h3 class="text-xl font-bold">Liste des séances existantes</h3><div class="overflow-x-auto"><table class="w-full bg-white/60 rounded-xl"><thead class="bg-blue-800 text-white"><tr><th>Matière</th><th>Niv.</th><th>Jour</th><th>Créneau</th><th>Nature</th><th>Enseignant</th><th>Salle</th><th>Actions</th></table></thead><tbody>${sessions.map(s=>{const t=teachers.find(tt=>tt.id===s.teacherId); const r=rooms.find(rr=>rr.id===s.roomId); const slotLabel=SLOTS.find(sl=>sl.debut===s.start&&sl.fin===s.end)?.label||`${s.start}-${s.end}`; return `<tr><td class="p-2">${s.subject}<td class="p-2">${s.level}<td class="p-2">${s.day}<td class="p-2">${slotLabel}<td class="p-2">${s.nature||'CT'}<td class="p-2">${t?.name||'?'} (${t?.subject||''})<td class="p-2">${r?.name||'?'}<td class="p-2"><button onclick="editSessionById('${s.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteSessionConfirm('${s.id}')" class="text-red-600"><i class="fas fa-trash"></i></button>`}).join('')}</tbody>}</div></div>`;
         document.getElementById('dynamicContent').innerHTML=html;
         if(sessionData && !isEditing){ const slotSelect=document.getElementById('sessionSlot'); if(slotSelect) slotSelect.value=`${sessionData.start}|${sessionData.end}`; }
     }
@@ -595,7 +585,7 @@
     }
     function highlightActiveLink(){ document.querySelectorAll('.sidebar-item').forEach(el=>{ el.classList.remove('active'); if(el.getAttribute('data-page')===currentPage) el.classList.add('active'); }); }
 
-    // Page publicitaire pour enseignants/étudiants
+    // Page publicitaire pour enseignants/étudiants (télécharger le fichier complet)
     function showPublicityPage(){
         document.getElementById('mainApp').style.display = 'none';
         const existing = document.getElementById('publicityPage');
@@ -603,7 +593,7 @@
         const div = document.createElement('div');
         div.id = 'publicityPage';
         div.className = 'publicity-page';
-        const hasPublication = localStorage.getItem('insta_published_file') !== null;
+        const hasPublication = localStorage.getItem('insta_published_all') !== null;
         div.innerHTML = `
             <div class="publicity-card">
                 <div class="logo-animation mb-4"><i class="fas fa-calendar-alt text-6xl text-blue-700"></i></div>
@@ -612,8 +602,8 @@
                 ${hasPublication ? `
                     <div class="bg-green-50 rounded-lg p-4 mb-6">
                         <i class="fas fa-download text-green-600 mr-2"></i>
-                        <span class="font-semibold">Emploi du temps officiel disponible</span>
-                        <p class="text-sm text-gray-500 mt-1">Téléchargez le dernier fichier publié par l'administration.</p>
+                        <span class="font-semibold">Emplois du temps officiels (L1, L2, L3) disponibles</span>
+                        <p class="text-sm text-gray-500 mt-1">Téléchargez le fichier complet publié par l'administration.</p>
                     </div>
                 ` : `
                     <div class="bg-yellow-50 rounded-lg p-4 mb-6">
@@ -629,13 +619,13 @@
         document.body.appendChild(div);
         if(hasPublication){
             document.getElementById('downloadFromPublicity')?.addEventListener('click', () => {
-                const stored = localStorage.getItem('insta_published_file');
+                const stored = localStorage.getItem('insta_published_all');
                 if(stored){
                     const blob = new Blob([stored], {type: 'text/html'});
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Emploi_du_temps_publie.html`;
+                    a.download = `Emplois_du_temps_complets.html`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
