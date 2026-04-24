@@ -7,22 +7,22 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        .glass-card { background: rgba(39, 158, 236, 0.9); backdrop-filter: blur(12px); border: 1px solid ; }
+        .glass-card { background: rgba(82, 83, 175, 0.9);   backdrop-filter: blur(12px); border: 1px solid; }
         .sidebar-item.active { background: #FBBF24 !important; color: #1E3A8A !important; }
         .sidebar-item:not(.active):hover { background: rgba(255,255,255,0.2); transform: translateX(4px); }
         .transition-smooth { transition: all 0.2s ease; }
         .toast { animation: fadeInUp 0.3s ease-out forwards; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        button, .btn, .role-btn, .level-select, #pdfExportBtn, #pdfExportAllBtn, #publishFileBtn, #publishAllBtn, .logout-btn, .home-btn, .downloadPublishedBtn {
+        button, .btn, .role-btn, .level-select, #pdfExportBtn, #pdfExportAllBtn, #publishAllBtn, .logout-btn, .home-btn {
             transition: all 0.25s ease-in-out !important;
         }
-        button:hover, .btn:hover, .role-btn:hover, .level-select:hover, #pdfExportBtn:hover, #pdfExportAllBtn:hover, #publishFileBtn:hover, #publishAllBtn:hover, .logout-btn:hover, .home-btn:hover, .downloadPublishedBtn:hover {
+        button:hover, .btn:hover, .role-btn:hover, .level-select:hover, #pdfExportBtn:hover, #pdfExportAllBtn:hover, #publishAllBtn:hover, .logout-btn:hover, .home-btn:hover {
             transform: translateY(-2px) scale(1.02) !important;
             filter: brightness(1.05) !important;
             box-shadow: 0 8px 15px rgba(0,0,0,0.2) !important;
         }
-        button:active, .btn:active, .role-btn:active, .level-select:active, #pdfExportBtn:active, #pdfExportAllBtn:active, #publishFileBtn:active, #publishAllBtn:active, .logout-btn:active, .home-btn:active, .downloadPublishedBtn:active {
+        button:active, .btn:active, .role-btn:active, .level-select:active, #pdfExportBtn:active, #pdfExportAllBtn:active, #publishAllBtn:active, .logout-btn:active, .home-btn:active {
             transform: translateY(0px) scale(0.98) !important;
         }
         
@@ -198,7 +198,7 @@
                 <i class="fas fa-user-graduate"></i> Étudiant
             </button>
         </div>
-        <p class="text-xs text-gray-400 mt-6">🔒 Entrez un email valide pour accéder</p>
+        <p class="text-xs text-gray-400 mt-6">🔒 L'administrateur doit utiliser l'email : insta@gmail.com</p>
     </div>
 </div>
 
@@ -222,8 +222,6 @@
     let currentPage = 'dashboard';
     let editSessionId = null, editTeacherId = null, editRoomId = null;
     let currentSelectedLevel = 'L1';
-    
-    let lastPublishedFileAll = localStorage.getItem('insta_published_all') || null;
 
     function updateSidebarLogo() {
         const img = document.getElementById('sidebarLogoImg');
@@ -244,19 +242,24 @@
         setTimeout(()=>toast.remove(),3500);
     }
 
-    const STORAGE={TEACHERS:'insta_teachers_officiel', ROOMS:'insta_rooms_officiel', SESSIONS:'insta_sessions_officiel'};
-    function persistAll(){ localStorage.setItem(STORAGE.TEACHERS,JSON.stringify(teachers)); localStorage.setItem(STORAGE.ROOMS,JSON.stringify(rooms)); localStorage.setItem(STORAGE.SESSIONS,JSON.stringify(sessions)); }
-    function loadData(){ teachers=JSON.parse(localStorage.getItem(STORAGE.TEACHERS)||'[]'); rooms=JSON.parse(localStorage.getItem(STORAGE.ROOMS)||'[]'); sessions=JSON.parse(localStorage.getItem(STORAGE.SESSIONS)||'[]'); }
-    function resetAllData(){ 
-        teachers=[]; rooms=[]; sessions=[]; 
-        persistAll(); 
-        // Supprimer également les publications
-        localStorage.removeItem('insta_published_file');
+    // ---------- STORAGE ----------
+    const STORAGE = { TEACHERS: 'insta_teachers_officiel', ROOMS: 'insta_rooms_officiel', SESSIONS: 'insta_sessions_officiel' };
+    function persistAll() {
+        localStorage.setItem(STORAGE.TEACHERS, JSON.stringify(teachers));
+        localStorage.setItem(STORAGE.ROOMS, JSON.stringify(rooms));
+        localStorage.setItem(STORAGE.SESSIONS, JSON.stringify(sessions));
+    }
+    function loadData() {
+        teachers = JSON.parse(localStorage.getItem(STORAGE.TEACHERS) || '[]');
+        rooms = JSON.parse(localStorage.getItem(STORAGE.ROOMS) || '[]');
+        sessions = JSON.parse(localStorage.getItem(STORAGE.SESSIONS) || '[]');
+    }
+    function resetAllData() {
+        teachers = []; rooms = []; sessions = [];
+        persistAll();
         localStorage.removeItem('insta_published_all');
-        localStorage.removeItem('insta_published_timestamp');
-        localStorage.removeItem('insta_published_level');
-        showToast("Données réinitialisées", "success"); 
-        renderCurrentPage(); 
+        showToast("Données réinitialisées", "success");
+        renderCurrentPage();
     }
 
     function checkConflict(newSession,excludeId=null){
@@ -276,7 +279,7 @@
     }
     function getTeacherWeeklyHours(teacherId,excludeId=null){ let total=0; for(let s of sessions){ if(excludeId && s.id===excludeId) continue; if(s.teacherId===teacherId) total+=getDurationHours(s.start,s.end); } return total; }
 
-    // ---------- GÉNÉRATION PDF OFFICIEL ----------
+    // ---------- GÉNÉRATION PDF OFFICIEL (version stable) ----------
     function generateHTMLForLevel(niveau){
         const sessionsNiveau = sessions.filter(s => s.level === niveau);
         let grid = {};
@@ -346,7 +349,16 @@
             }
         }
         
-        tableHtml += `</tbody><\/table><\/div><div class="signature-section" style="position: relative; z-index: 1;"><div class="footer-date">Abéché le ${dateStr}<\/div><div class="signature"><b>Chef de Section GI<\/b><br><u>MADINA ALI IZERIK<\/u><br>(Signature & Cachet)<\/div><\/div><\/div>`;
+        tableHtml += `</tbody><\/table><\/div>
+            <div class="signature-section" style="position: relative; z-index: 1;">
+                <div class="footer-date">Abéché le ${dateStr}<\/div>
+                <div class="signature">
+                    <b>Chef de Section GI<\/b><br>
+                    <u>MADINA ALI IZERIK<\/u><br>
+                    (Signature & Cachet)
+                <\/div>
+            <\/div>
+        <\/div>`;
         return tableHtml;
     }
 
@@ -360,7 +372,7 @@
             .inst-name { font-weight: bold; font-size: 8.5pt; margin-top: 1px; }
             table { width: 100%; border-collapse: collapse; margin-top: 2px; }
             th, td { border: 1px solid #111; padding: 1px 1px; text-align: center; vertical-align: middle; }
-            th { background-color: ; font-weight: bold; }
+            th { background-color: #f2f2f2; font-weight: bold; }
             .title-row { background-color: #e9ecef; }
             .pause { background-color: #ffff00 !important; font-weight: bold; }
             .session-row { background-color: #f5f5f5; }
@@ -371,12 +383,11 @@
             .col-jours { width: 10%; }
             .col-horaire { width: 13%; }
             .col-matiere { width: 30%; }
-            .nature-CT { background-color: ; }
-            .nature-TP { background-color: ; }
-            .nature-TD { background-color: ; }
+            .nature-CT { background-color: #d4edda; }
+            .nature-TP { background-color: #fff3cd; }
+            .nature-TD { background-color: #d1ecf1; }
             .nature-ET { background-color: #f8d7da; }
             .nature-ER { background-color: #e2d5f5; }
-            .nature-CC { background-color: #e2d5f5; }
         <\/style><\/head><body>${generateHTMLForLevel(level)}<\/body><\/html>`;
     }
 
@@ -397,11 +408,11 @@
             .header{text-align:center;margin-bottom:1px;}
             .inst-name{font-weight:bold;font-size:8.5pt;margin-top:1px;}
             table{width:100%;border-collapse:collapse;margin-top:2px;}
-            th,td{border:1px solid ;padding:1px 1px;text-align:center;vertical-align:middle;}
+            th,td{border:1px solid #111;padding:1px 1px;text-align:center;vertical-align:middle;}
             th{background-color:;:bold;}
-            .title-row{background-color:;}
-            .pause{background-color:#ffff00 !important;font-weight:bold;}
-            .session-row{background-color:;}
+            .title-row{background-color:#e9ecef;}
+            .pause{background-color: !important;font-weight:bold;}
+            .session-row{background-color:#f5f5f5;}
             .header-info{display:flex;justify-content:space-between;font-weight:bold;margin-bottom:1px;font-size:8pt;}
             .signature-section{margin-top:3px;display:flex;justify-content:space-between;align-items:flex-end;}
             .footer-date{font-size:7pt;}
@@ -418,7 +429,7 @@
         showToast("PDF des 3 niveaux généré", "success");
     }
 
-    // Publication des trois niveaux en un seul fichier
+    // Publication des trois niveaux en un seul fichier (localStorage)
     function publishAllSchedules(){
         if(currentRole !== 'admin') return;
         let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Emplois du temps complets (L1/L2/L3)<\/title><style>
@@ -429,11 +440,11 @@
             .header{text-align:center;margin-bottom:1px;}
             .inst-name{font-weight:bold;font-size:8.5pt;margin-top:1px;}
             table{width:100%;border-collapse:collapse;margin-top:2px;}
-            th,td{border:1px solid ;padding:1px 1px;text-align:center;vertical-align:middle;}
-            th{background-color::bold;}
+            th,td{border:1px solid #111;padding:1px 1px;text-align:center;vertical-align:middle;}
+            th{background-color:;:bold;}
             .title-row{background-color:#e9ecef;}
-            .pause{background-color:#ffff00 !important;font-weight:bold;}
-            .session-row{background-color:#f5f5f5;}
+            .pause{background-color:!important;font-weight:bold;}
+            .session-row{background-color:;}
             .header-info{display:flex;justify-content:space-between;font-weight:bold;margin-bottom:1px;font-size:8pt;}
             .signature-section{margin-top:3px;display:flex;justify-content:space-between;align-items:flex-end;}
             .footer-date{font-size:7pt;}
@@ -500,16 +511,35 @@
     // ---------- GESTION ENSEIGNANTS, SALLES, SÉANCES (inchangées) ----------
     function renderTeachersPage(){
         if(currentRole!=='admin'){ renderDashboard(); return; }
-        const html=`<div class="glass-card rounded-3xl p-6 shadow-xl"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-black text-blue-900">Enseignants</h2><button onclick="openTeacherModal()" class="bg-green-600 text-white px-5 py-2 rounded-full">Ajouter</button></div><div class="overflow-x-auto"><table class="min-w-full bg-white/60 rounded-2xl"><thead class="bg-blue-800 text-white"><tr><th class="p-3">Nom</th><th>Email</th><th>Matière principale</th><th>Statut</th><th>Heures/semaine</th><th>Actions</th></tr></thead><tbody>${teachers.map(t=>`<tr><td class="p-3">${t.name}<td class="p-3">${t.email}<td class="p-3">${t.subject||''}<td class="capitalize">${t.status}<td class="p-3">${getTeacherWeeklyHours(t.id).toFixed(2)}/${t.hoursPerWeek}h<td class="p-3"><button onclick="editTeacher('${t.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteTeacherConfirm('${t.id}')" class="text-red-600"><i class="fas fa-trash"></i></button>`).join('')}</tbody>}</div></div>
+        const html=`<div class="glass-card rounded-3xl p-6 shadow-xl"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-black text-blue-900">Enseignants</h2><button onclick="openTeacherModal()" class="bg-green-600 text-white px-5 py-2 rounded-full">Ajouter</button></div><div class="overflow-x-auto"><table class="min-w-full bg-white/60 rounded-2xl"><thead class="bg-blue-800 text-white"><tr><th class="p-3">Nom</th><th>Email</th><th>Matière principale</th><th>Statut</th><th>Heures/semaine</th><th>Actions</th></tr></thead><tbody>${teachers.map(t=>`<td><td class="p-3">${t.name}<td class="p-3">${t.email}<td class="p-3">${t.subject||''}<td class="capitalize">${t.status}<td class="p-3">${getTeacherWeeklyHours(t.id).toFixed(2)}/${t.hoursPerWeek}h<td class="p-3"><button onclick="editTeacher('${t.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteTeacherConfirm('${t.id}')" class="text-red-600"><i class="fas fa-trash"></i></button>`).join('')}</tbody>}</div></div>
         <div id="teacherModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"><div class="bg-white p-6 rounded-2xl w-96"><h3 id="teacherModalTitle" class="text-xl font-bold mb-4">Enseignant</h3><input type="hidden" id="teacherId"><input id="teacherName" placeholder="Nom" class="w-full border p-2 mb-2 rounded"><input id="teacherEmail" placeholder="Email" class="w-full border p-2 mb-2 rounded"><input id="teacherSubject" placeholder="Matière principale" class="w-full border p-2 mb-2 rounded"><select id="teacherStatus"><option value="permanent">Permanent</option><option value="missionnaire">Missionnaire</option></select><input id="teacherHours" type="number" step="0.5" placeholder="Heures max / semaine" class="w-full border p-2 rounded"><div class="flex justify-end gap-2 mt-4"><button onclick="closeTeacherModal()" class="px-4 py-2 bg-gray-300 rounded">Annuler</button><button id="saveTeacherBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Enregistrer</button></div></div></div>`;
         document.getElementById('dynamicContent').innerHTML=html;
         document.getElementById('saveTeacherBtn')?.addEventListener('click',saveTeacher);
     }
     function openTeacherModal(id=null){ editTeacherId=id; const modal=document.getElementById('teacherModal'); const title=document.getElementById('teacherModalTitle'); if(id){ const t=teachers.find(t=>t.id===id); if(t){ document.getElementById('teacherId').value=t.id; document.getElementById('teacherName').value=t.name; document.getElementById('teacherEmail').value=t.email; document.getElementById('teacherSubject').value=t.subject||''; document.getElementById('teacherStatus').value=t.status; document.getElementById('teacherHours').value=t.hoursPerWeek; title.innerText="Modifier enseignant"; } }else{ document.getElementById('teacherId').value=''; document.getElementById('teacherName').value=''; document.getElementById('teacherEmail').value=''; document.getElementById('teacherSubject').value=''; document.getElementById('teacherStatus').value='permanent'; document.getElementById('teacherHours').value=''; title.innerText="Ajouter un enseignant"; } modal.classList.remove('hidden'); modal.classList.add('flex'); }
     function closeTeacherModal(){ document.getElementById('teacherModal').classList.add('hidden'); editTeacherId=null; }
-    function saveTeacher(){ const name=document.getElementById('teacherName').value.trim(); const email=document.getElementById('teacherEmail').value.trim(); const subject=document.getElementById('teacherSubject').value.trim(); const status=document.getElementById('teacherStatus').value; const hours=parseFloat(document.getElementById('teacherHours').value); if(!name||!email||isNaN(hours)||hours<0){ showToast("Champs invalides","error"); return; } if(editTeacherId){ let idx=teachers.findIndex(t=>t.id===editTeacherId); if(idx!==-1) teachers[idx]={...teachers[idx],name,email,subject,status,hoursPerWeek:hours}; showToast("Enseignant modifié","success"); }else{ teachers.push({id:'t'+Date.now()+Math.random().toString(36),name,email,subject,status,hoursPerWeek:hours}); showToast("Enseignant ajouté","success"); } persistAll(); closeTeacherModal(); renderTeachersPage(); }
+    function saveTeacher(){
+        const name=document.getElementById('teacherName').value.trim();
+        const email=document.getElementById('teacherEmail').value.trim();
+        const subject=document.getElementById('teacherSubject').value.trim();
+        const status=document.getElementById('teacherStatus').value;
+        const hours=parseFloat(document.getElementById('teacherHours').value);
+        if(!name||!email||isNaN(hours)||hours<0){ showToast("Champs invalides","error"); return; }
+        if(editTeacherId){
+            const idx=teachers.findIndex(t=>t.id===editTeacherId);
+            if(idx!==-1) teachers[idx]={...teachers[idx],name,email,subject,status,hoursPerWeek:hours};
+            showToast("Enseignant modifié","success");
+        } else {
+            teachers.push({id:'t'+Date.now()+Math.random().toString(36),name,email,subject,status,hoursPerWeek:hours});
+            showToast("Enseignant ajouté","success");
+        }
+        persistAll(); closeTeacherModal(); renderTeachersPage();
+    }
     function editTeacher(id){ openTeacherModal(id); }
-    function deleteTeacherConfirm(id){ if(sessions.some(s=>s.teacherId===id)){ showToast("Cet enseignant a des séances","error"); return; } teachers=teachers.filter(t=>t.id!==id); persistAll(); renderTeachersPage(); showToast("Supprimé","success"); }
+    function deleteTeacherConfirm(id){
+        if(sessions.some(s=>s.teacherId===id)){ showToast("Cet enseignant a des séances","error"); return; }
+        teachers=teachers.filter(t=>t.id!==id); persistAll(); renderTeachersPage(); showToast("Supprimé","success");
+    }
 
     function renderRoomsPage(){
         if(currentRole!=='admin'){ renderDashboard(); return; }
@@ -520,9 +550,22 @@
     }
     function openRoomModal(id=null){ editRoomId=id; const modal=document.getElementById('roomModal'); const title=document.getElementById('roomModalTitle'); if(id){ const r=rooms.find(r=>r.id===id); if(r){ document.getElementById('roomId').value=r.id; document.getElementById('roomName').value=r.name; title.innerText="Modifier salle"; } }else{ document.getElementById('roomId').value=''; document.getElementById('roomName').value=''; title.innerText="Ajouter salle"; } modal.classList.remove('hidden'); modal.classList.add('flex'); }
     function closeRoomModal(){ document.getElementById('roomModal').classList.add('hidden'); editRoomId=null; }
-    function saveRoom(){ const name=document.getElementById('roomName').value.trim(); if(!name){ showToast("Nom requis","error"); return; } if(editRoomId){ const idx=rooms.findIndex(r=>r.id===editRoomId); if(idx!==-1) rooms[idx].name=name; }else{ rooms.push({id:'r'+Date.now(),name}); } persistAll(); closeRoomModal(); renderRoomsPage(); showToast("Salle sauvegardée","success"); }
+    function saveRoom(){
+        const name=document.getElementById('roomName').value.trim();
+        if(!name){ showToast("Nom requis","error"); return; }
+        if(editRoomId){
+            const idx=rooms.findIndex(r=>r.id===editRoomId);
+            if(idx!==-1) rooms[idx].name=name;
+        } else {
+            rooms.push({id:'r'+Date.now(),name});
+        }
+        persistAll(); closeRoomModal(); renderRoomsPage(); showToast("Salle sauvegardée","success");
+    }
     function editRoom(id){ openRoomModal(id); }
-    function deleteRoomConfirm(id){ if(sessions.some(s=>s.roomId===id)){ showToast("Salle utilisée dans des séances","error"); return; } rooms=rooms.filter(r=>r.id!==id); persistAll(); renderRoomsPage(); showToast("Salle supprimée","success"); }
+    function deleteRoomConfirm(id){
+        if(sessions.some(s=>s.roomId===id)){ showToast("Salle utilisée dans des séances","error"); return; }
+        rooms=rooms.filter(r=>r.id!==id); persistAll(); renderRoomsPage(); showToast("Salle supprimée","success");
+    }
 
     function renderSessionsPage(){
         if(currentRole!=='admin'){ renderDashboard(); return; }
@@ -542,7 +585,7 @@
         <div><label>Nature *</label><select id="sessionNature" class="w-full border rounded-lg p-2">${natureOptions}</select></div>
         <div><label>Statut</label><select id="sessionStatus" class="w-full border rounded-lg p-2"><option ${sessionData?.status==='permanent'?'selected':''}>permanent</option><option ${sessionData?.status==='missionnaire'?'selected':''}>missionnaire</option></select></div></div>
         <button onclick="saveSession()" class="bg-blue-700 text-white px-6 py-2 rounded-full shadow">${isEditing?'Mettre à jour':'Créer séance'}</button>
-        <hr><h3 class="text-xl font-bold">Liste des séances existantes</h3><div class="overflow-x-auto"><table class="w-full bg-white/60 rounded-xl"><thead class="bg-blue-800 text-white"><tr><th>Matière</th><th>Niv.</th><th>Jour</th><th>Créneau</th><th>Nature</th><th>Enseignant</th><th>Salle</th><th>Actions</th></table></thead><tbody>${sessions.map(s=>{const t=teachers.find(tt=>tt.id===s.teacherId); const r=rooms.find(rr=>rr.id===s.roomId); const slotLabel=SLOTS.find(sl=>sl.debut===s.start&&sl.fin===s.end)?.label||`${s.start}-${s.end}`; return `<tr><td class="p-2">${s.subject}<td class="p-2">${s.level}<td class="p-2">${s.day}<td class="p-2">${slotLabel}<td class="p-2">${s.nature||'CT'}<td class="p-2">${t?.name||'?'} (${t?.subject||''})<td class="p-2">${r?.name||'?'}<td class="p-2"><button onclick="editSessionById('${s.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteSessionConfirm('${s.id}')" class="text-red-600"><i class="fas fa-trash"></i></button>`}).join('')}</tbody>}</div></div>`;
+        <hr><h3 class="text-xl font-bold">Liste des séances existantes</h3><div class="overflow-x-auto"><table class="w-full bg-white/60 rounded-xl"><thead class="bg-blue-800 text-white"><tr><th>Matière</th><th>Niv.</th><th>Jour</th><th>Créneau</th><th>Nature</th><th>Enseignant</th><th>Salle</th><th>Actions</th></tr></thead><tbody>${sessions.map(s=>{const t=teachers.find(tt=>tt.id===s.teacherId); const r=rooms.find(rr=>rr.id===s.roomId); const slotLabel=SLOTS.find(sl=>sl.debut===s.start&&sl.fin===s.end)?.label||`${s.start}-${s.end}`; return `<tr><td class="p-2">${s.subject}<td class="p-2">${s.level}<td class="p-2">${s.day}<td class="p-2">${slotLabel}<td class="p-2">${s.nature||'CT'}<td class="p-2">${t?.name||'?'} (${t?.subject||''})<td class="p-2">${r?.name||'?'}<td class="p-2"><button onclick="editSessionById('${s.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteSessionConfirm('${s.id}')" class="text-red-600"><i class="fas fa-trash"></i></button>`}).join('')}</tbody>}</div></div>`;
         document.getElementById('dynamicContent').innerHTML=html;
         if(sessionData && !isEditing){ const slotSelect=document.getElementById('sessionSlot'); if(slotSelect) slotSelect.value=`${sessionData.start}|${sessionData.end}`; }
     }
@@ -563,14 +606,29 @@
         if(currentHours+duration>teacher.hoursPerWeek+0.01){ showToast(`Dépassement du quota horaire pour ${teacher.name} (max ${teacher.hoursPerWeek}h, déjà ${currentHours.toFixed(2)}h)`, "error"); return; }
         const newSession={teacherId,roomId,subject,day,start,end,status,level,nature,id:editSessionId||'s'+Date.now()};
         const conflict=checkConflict(newSession,editSessionId); if(conflict.conflict){ showToast(conflict.message,"error"); return; }
-        if(editSessionId){ const idx=sessions.findIndex(s=>s.id===editSessionId); if(idx!==-1) sessions[idx]={...newSession,id:editSessionId}; showToast("Séance mise à jour","success"); editSessionId=null; }
-        else{ sessions.push(newSession); showToast("Séance ajoutée","success"); }
+        if(editSessionId){
+            const idx=sessions.findIndex(s=>s.id===editSessionId);
+            if(idx!==-1) sessions[idx]={...newSession,id:editSessionId};
+            showToast("Séance mise à jour","success");
+            editSessionId=null;
+        } else {
+            sessions.push(newSession);
+            showToast("Séance ajoutée","success");
+        }
         persistAll(); renderSessionsPage();
     }
     function editSessionById(id){ editSessionId=id; renderSessionsPage(); }
     function cancelEditSession(){ editSessionId=null; renderSessionsPage(); }
-    function deleteSessionConfirm(id){ if(confirm("Supprimer cette séance ?")){ sessions=sessions.filter(s=>s.id!==id); persistAll(); showToast("Séance supprimée","success"); if(currentPage==='sessions') renderSessionsPage(); else renderCurrentPage(); } }
+    function deleteSessionConfirm(id){
+        if(confirm("Supprimer cette séance ?")){
+            sessions=sessions.filter(s=>s.id!==id);
+            persistAll();
+            showToast("Séance supprimée","success");
+            if(currentPage==='sessions') renderSessionsPage(); else renderCurrentPage();
+        }
+    }
 
+    // Navigation
     function navigateToPage(page){ currentPage=page; editSessionId=null; renderCurrentPage(); }
     function renderCurrentPage(){
         if(currentPage==='dashboard') renderDashboard();
@@ -585,7 +643,7 @@
     }
     function highlightActiveLink(){ document.querySelectorAll('.sidebar-item').forEach(el=>{ el.classList.remove('active'); if(el.getAttribute('data-page')===currentPage) el.classList.add('active'); }); }
 
-    // Page publicitaire pour enseignants/étudiants (télécharger le fichier complet)
+    // Page publicitaire pour enseignants/étudiants (localStorage)
     function showPublicityPage(){
         document.getElementById('mainApp').style.display = 'none';
         const existing = document.getElementById('publicityPage');
@@ -639,24 +697,34 @@
         document.getElementById('logoutFromPublicity')?.addEventListener('click', () => { logout(); });
     }
 
+    // Connexion
     function login(role){
-        const email=document.getElementById('loginEmail').value.trim();
-        const emailRegex=/^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
-        if(!email||!emailRegex.test(email)){ showToast("Email invalide","error"); return; }
-        currentRole=role; currentUserEmail=email;
-        localStorage.setItem('userRole',role); localStorage.setItem('userEmail',email);
-        document.getElementById('loginOverlay').style.opacity='0';
-        setTimeout(()=>{
-            document.getElementById('loginOverlay').style.display='none';
+        const email = document.getElementById('loginEmail').value.trim();
+        const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+        if(!email || !emailRegex.test(email)){
+            showToast("Email invalide", "error");
+            return;
+        }
+        if(role === 'admin' && email !== 'insta@gmail.com'){
+            showToast("Accès administrateur refusé. L'email doit être insta@gmail.com", "error");
+            return;
+        }
+        currentRole = role;
+        currentUserEmail = email;
+        localStorage.setItem('userRole', role);
+        localStorage.setItem('userEmail', email);
+        document.getElementById('loginOverlay').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('loginOverlay').style.display = 'none';
             if(role === 'admin'){
-                document.getElementById('mainApp').style.display='block';
+                document.getElementById('mainApp').style.display = 'block';
                 updateSidebarLogo();
                 loadData();
                 renderCurrentPage();
             } else {
                 showPublicityPage();
             }
-        },500);
+        }, 500);
     }
 
     function logout(){
