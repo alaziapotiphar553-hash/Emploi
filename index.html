@@ -600,29 +600,6 @@
             }
         });
     });
-
-// Affichage d'un message si Firestore ne répond pas
-function startPublicListener() {
-    if(unsubscribePublication) unsubscribePublication();
-    const container = document.getElementById('publishedContent');
-    if(container) container.innerHTML = '<div class="text-center text-yellow-600 p-8">Connexion à Firebase...</div>';
-    
-    unsubscribePublication = db.collection('publication').doc('all').onSnapshot(doc => {
-        if(container) {
-            if(doc.exists && doc.data().html) {
-                container.innerHTML = doc.data().html;
-            } else {
-                container.innerHTML = '<div class="text-center text-red-600 p-8">Aucune publication reçue. Vérifie que l’admin a publié et que les règles Firestore autorisent la lecture.</div>';
-            }
-        }
-    }, (error) => {
-        if(container) {
-            container.innerHTML = `<div class="text-center text-red-600 p-8">Erreur Firestore : ${error.message}. Vérifie ta clé API et les règles.</div>`;
-        }
-        console.error("Firestore error:", error);
-    });
-}
-
 </script>
 
 </body>
