@@ -3,40 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>INSTA-EDT | Publication et téléchargement temps réel</title>
+    <title>INSTA-EDT | Administration & Publication temps réel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Firebase SDK (seulement Firestore) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
-        /* mêmes styles que précédemment, garder la cohérence */
-        .glass-card { background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); }
+        .glass-card { background: rgba(92, 113, 233, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); }
         .sidebar-item.active { background: #FBBF24 !important; color: #1E3A8A !important; }
         .sidebar-item:not(.active):hover { background: rgba(255,255,255,0.2); transform: translateX(4px); }
         .toast { animation: fadeInUp 0.3s ease-out forwards; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         button, .btn, .role-btn, #pdfExportBtn, #pdfExportAllBtn, #publishBtn, .logout-btn, .home-btn { transition: all 0.25s ease-in-out !important; }
         button:hover, .btn:hover, .role-btn:hover, #pdfExportBtn:hover, #pdfExportAllBtn:hover, #publishBtn:hover, .logout-btn:hover, .home-btn:hover { transform: translateY(-2px) scale(1.02) !important; filter: brightness(1.05) !important; box-shadow: 0 8px 15px rgba(0,0,0,0.2) !important; }
-        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1e3a8a, #312e81); z-index: 1000; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease; }
-        .login-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-radius: 2rem; padding: 2rem; width: 90%; max-width: 400px; box-shadow: 0 20px 35px rgba(0,0,0,0.3); animation: fadeInScale 0.6s ease-out; }
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3a8a, #312e81);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .login-card {
+            background: rgba(87, 89, 235, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+            padding: 2rem;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.3);
+            animation: fadeInScale 0.6s ease-out;
+        }
         @keyframes fadeInScale { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        .role-btn { border: 2px solid transparent; }
-        .role-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
-        .logout-btn, .home-btn { background-color: #dc2626; }
-        .logout-btn:hover, .home-btn:hover { background-color: #b91c1c; transform: scale(1.02); }
-        .home-btn { background-color: #3b82f6; }
-        .home-btn:hover { background-color: #2563eb; }
+        .download-btn { background-color: #25D366; color: white; padding: 8px 16px; border-radius: 50px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s; }
+        .download-btn:hover { background-color: #128C7E; transform: scale(1.02); }
         .admin-only { display: flex; }
         .published-view { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.4; }
         .published-view table { width: 100%; border-collapse: collapse; }
         .published-view th, .published-view td { border: 1px solid #111; padding: 4px; text-align: center; }
-        .download-btn { background-color: #25D366; color: white; padding: 10px 20px; border-radius: 50px; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s; }
-        .download-btn:hover { background-color: #128C7E; transform: scale(1.02); }
     </style>
 </head>
 <body>
 
-<!-- Interface admin -->
+<!-- Interface admin (visible après connexion) -->
 <div id="adminApp" style="display: none;">
     <div class="flex flex-col md:flex-row min-h-screen">
         <aside class="w-full md:w-72 bg-blue-900/80 backdrop-blur-md text-white p-5 flex flex-col shadow-2xl border-r border-white/20">
@@ -55,8 +70,7 @@
             </nav>
             <div class="mt-auto pt-6 border-t border-blue-700/50 text-xs space-y-2">
                 <button id="resetDataBtn" class="w-full bg-red-600/70 hover:bg-red-600 p-2 rounded-lg"><i class="fas fa-database"></i> Réinitialiser tout</button>
-                <button id="homeBtn" class="w-full home-btn p-2 rounded-lg"><i class="fas fa-home"></i> Accueil</button>
-                <button id="logoutBtn" class="w-full logout-btn p-2 rounded-lg"><i class="fas fa-sign-out-alt"></i> Déconnexion</button>
+                <button id="logoutAdminBtn" class="w-full logout-btn p-2 rounded-lg"><i class="fas fa-sign-out-alt"></i> Déconnexion</button>
                 <div class="text-center text-blue-200 mt-3">Session 2025-2026</div>
             </div>
         </aside>
@@ -66,7 +80,7 @@
     </div>
 </div>
 
-<!-- Vue publique (temps réel + téléchargement) -->
+<!-- Vue publique (visible sans connexion) -->
 <div id="publicView" style="display: none;">
     <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <div class="max-w-7xl mx-auto">
@@ -77,7 +91,7 @@
                 </div>
                 <div class="flex gap-3">
                     <button id="downloadPublishedBtn" class="download-btn"><i class="fas fa-download"></i> Télécharger l'emploi du temps</button>
-                    <button id="logoutFromPublic" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"><i class="fas fa-sign-out-alt"></i> Déconnexion</button>
+                    <button id="showAdminLoginBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"><i class="fas fa-user-shield"></i> Administration</button>
                 </div>
             </div>
             <div id="publishedContent" class="bg-white rounded-2xl shadow-xl p-6 overflow-x-auto published-view">
@@ -88,23 +102,22 @@
     </div>
 </div>
 
-<!-- Page de connexion -->
-<div id="loginOverlay" class="login-overlay">
-    <div class="login-card text-center">
-        <i class="fas fa-calendar-alt text-5xl text-blue-700"></i>
-        <h1 class="text-3xl font-bold text-blue-900 mt-2">INSTA-EDT</h1>
-        <p class="text-gray-600 mb-6">Gestion des emplois du temps</p>
-        <div class="space-y-4">
-            <input type="email" id="loginEmail" placeholder="Votre email professionnel" class="email-input w-full px-4 py-3 rounded-xl bg-white/80">
-            <button data-role="admin" class="role-btn w-full py-3 rounded-xl bg-blue-100 text-blue-800 font-semibold"><i class="fas fa-user-shield"></i> Administrateur</button>
-            <button data-role="public" class="role-btn w-full py-3 rounded-xl bg-green-100 text-green-800 font-semibold"><i class="fas fa-eye"></i> Accès public</button>
+<!-- Popup de connexion admin (locale) -->
+<div id="adminLoginModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 w-96">
+        <h2 class="text-2xl font-bold mb-4 text-center">Connexion administrateur</h2>
+        <input type="email" id="loginEmail" placeholder="Email" class="w-full border p-2 mb-3 rounded">
+        <input type="password" id="loginPassword" placeholder="Mot de passe" class="w-full border p-2 mb-4 rounded">
+        <div class="flex justify-end gap-3">
+            <button id="closeLoginModal" class="px-4 py-2 bg-gray-300 rounded">Annuler</button>
+            <button id="submitLoginBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Se connecter</button>
         </div>
-        <p class="text-xs text-gray-400 mt-6">🔒 Admin : insta@gmail.com</p>
+        <p class="text-xs text-gray-400 mt-3 text-center">Utilisez insta@gmail.com / admin123 (mot de passe modifiable dans le code)</p>
     </div>
 </div>
 
 <script>
-    // ---------- CONFIGURATION FIREBASE (à remplacer) ----------
+    // ---------- Configuration Firebase (à remplacer) ----------
     const firebaseConfig = {
         apiKey: "VOTRE_API_KEY",
         authDomain: "VOTRE_AUTH_DOMAIN",
@@ -116,7 +129,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // ---------- PARAMÈTRES ----------
+    // ---------- Paramètres ----------
     const SLOTS = [
         { debut: "07:30", fin: "09:30", label: "7h30-9h30" },
         { debut: "09:45", fin: "12:45", label: "9h45-12h45" },
@@ -126,16 +139,20 @@
     ];
     const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     const LEVELS = ['L1', 'L2', 'L3'];
-    const NATURES = ['CT', 'TP', 'TD', 'ET', 'ER'];
+    const NATURES = ['CT', 'TP', 'TD', 'ET', 'ER','CC'];
 
     let teachers = [], rooms = [], sessions = [];
     let logoDataURL = null, backgroundLogoURL = null, sidebarLogoURL = localStorage.getItem('sidebarLogo') || null;
-    let currentRole = localStorage.getItem('userRole') || null;
+    let isAdminLoggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
     let currentPage = 'dashboard';
     let editSessionId = null, editTeacherId = null, editRoomId = null;
     let unsubscribeTeachers, unsubscribeRooms, unsubscribeSessions, unsubscribePublication;
-    let currentPublishedHtml = null; // stocke le dernier HTML publié pour le téléchargement
+    let currentPublishedHtml = null;
 
+    // Mot de passe admin (changez-le ici)
+    const ADMIN_PASSWORD = "admin123";
+
+    // ----- Utilitaires -----
     function showToast(msg, type='success'){
         let toast = document.createElement('div');
         toast.className = `fixed bottom-6 right-6 z-50 p-4 rounded-xl shadow-2xl text-white font-medium flex items-center gap-3 toast ${type==='success'?'bg-green-600':'bg-red-600'}`;
@@ -157,14 +174,15 @@
     }
     function checkConflict(newSess, excludeId=null){
         let slotOk = SLOTS.some(s=>s.debut===newSess.start && s.fin===newSess.end && !s.isPause);
-        if(!slotOk && !(newSess.start==="12:45" && newSess.end==="13:45")) return {conflict:true, message:"Créneau invalide"};
+        if(!slotOk && !(newSess.start==="12:45" && newSess.end==="13:45")) return {conflict:true, message:"Créneau horaire invalide"};
+        if(newSess.start==="12:45" && newSess.end==="13:45") return {conflict:true, message:"La pause de 12h45-13h45 ne peut pas être utilisée pour une séance"};
         for(let s of sessions){
             if(excludeId && s.id===excludeId) continue;
             if(s.day!==newSess.day) continue;
             if(s.start===newSess.start && s.end===newSess.end){
-                if(s.level===newSess.level) return {conflict:true, message:`Conflit niveau ${s.level}`};
-                if(s.teacherId===newSess.teacherId) return {conflict:true, message:"Conflit enseignant"};
-                if(s.roomId===newSess.roomId) return {conflict:true, message:"Conflit salle"};
+                if(s.level===newSess.level) return {conflict:true, message:`Conflit niveau ${s.level} : ${s.subject}`};
+                if(s.teacherId===newSess.teacherId) return {conflict:true, message:"Conflit enseignant (même créneau)"};
+                if(s.roomId===newSess.roomId) return {conflict:true, message:"Conflit salle (même créneau)"};
             }
         }
         return {conflict:false};
@@ -181,6 +199,7 @@
     async function updateSession(s) { await db.collection('sessions').doc(s.id).update(s); }
     async function deleteSession(id) { await db.collection('sessions').doc(id).delete(); }
     async function resetAll() {
+        if (!isAdminLoggedIn) return;
         (await db.collection('teachers').get()).forEach(d=>d.ref.delete());
         (await db.collection('rooms').get()).forEach(d=>d.ref.delete());
         (await db.collection('sessions').get()).forEach(d=>d.ref.delete());
@@ -188,7 +207,7 @@
         showToast("Toutes les données réinitialisées");
     }
 
-    // ----- GÉNÉRATION HTML POUR UN NIVEAU (compact) -----
+    // ----- Génération HTML pour un niveau (PDF et affichage) -----
     function generateLevelHTML(niveau, withPageBreak = false) {
         const sessNiveau = sessions.filter(s => s.level === niveau);
         let grid = {};
@@ -247,14 +266,15 @@
         body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 7.5pt; background: white; }
         .level-container { position: relative; background: white; margin-bottom: 0; }
         table { width:100%; border-collapse:collapse; table-layout:fixed; margin:2px 0; }
-        th, td { border:1px solid #111; padding: 2px 1px; text-align:center; vertical-align:middle; word-wrap:break-word; }
-        th { background:#f2f2f2; font-weight:bold; }
+        th, td { border:1px solid ; padding: 2px 1px; text-align:center; vertical-align:middle; word-wrap:break-word; }
+        th { background: ; :bold; }
         .pause { background:#ffff00 !important; font-weight:bold; }
-        .nature-CT { background:#d4edda; }
-        .nature-TP { background:#fff3cd; }
-        .nature-TD { background:#d1ecf1; }
+        .nature-CT { background:; }
+        .nature-TP { background:; }
+        .nature-TD { background:; }
         .nature-ET { background:#f8d7da; }
         .nature-ER { background:#e2d5f5; }
+        .nature-CC { background:#e2d5f5; }
         tr { page-break-inside: avoid; }
     </style>`;
 
@@ -286,11 +306,11 @@
         win.document.write(fullHtml);
         win.document.close();
         win.print();
-        showToast("PDF des 3 niveaux généré");
+        showToast("PDF des 3 niveaux généré (une page par niveau)");
     }
 
     async function publishToFirestore() {
-        if (currentRole !== 'admin') return;
+        if (!isAdminLoggedIn) return;
         const fullHtml = generateFullPublishedHTML();
         await db.collection('publication').doc('all').set({ html: fullHtml, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
         showToast("Emploi du temps publié ! Mise à jour temps réel pour tous.");
@@ -361,20 +381,20 @@
         });
     }
 
-    // ----- Gestion des enseignants (inchangée mais fonctionnelle) -----
+    // ----- Gestion des enseignants -----
     function renderTeachersPage() {
-        if(currentRole!=='admin') return;
+        if(!isAdminLoggedIn) return;
         const html = `
         <div class="glass-card p-6"><div class="flex justify-between"><h2 class="text-2xl font-black">Enseignants</h2><button onclick="openTeacherModal()" class="bg-green-600 text-white px-4 py-2 rounded-full">+ Ajouter</button></div>
-        <div class="overflow-x-auto mt-4"><table class="min-w-full bg-white/60"><thead class="bg-blue-800 text-white"><tr><th>Nom</th><th>Email</th><th>Matière</th><th>Statut</th><th>Heures/semaine</th><th>Actions</th></tr></thead><tbody>${teachers.map(t=>`<tr><td>${t.name}</td><td>${t.email}</td><td>${t.subject||''}</td><td>${t.status}</td><td>${getTeacherWeeklyHours(t.id).toFixed(1)}/${t.hoursPerWeek}h</td><td><button onclick="editTeacher('${t.id}')" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="deleteTeacherConfirm('${t.id}')" class="text-red-600"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody>}</div></div>
+        <div class="overflow-x-auto mt-4"><table class="min-w-full bg-white/60"><thead class="bg-blue-800 text-white"><tr><th>Nom</th><th>Email</th><th>Matière</th><th>Statut</th><th>Heures/semaine</th><th>Actions</th></tr></thead><tbody>${teachers.map(t=>`<tr><td class="p-2">${t.name}</td><td class="p-2">${t.email}</td><td class="p-2">${t.subject||''}</td><td class="p-2">${t.status}</td><td class="p-2">${getTeacherWeeklyHours(t.id).toFixed(1)}/${t.hoursPerWeek}h</td><td class="p-2"><button onclick="editTeacher('${t.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteTeacherConfirm('${t.id}')" class="text-red-600"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div></div>
         <div id="teacherModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"><div class="bg-white p-6 rounded-2xl w-96"><h3 id="teacherModalTitle">Enseignant</h3><input type="hidden" id="teacherId"><input id="teacherName" placeholder="Nom" class="w-full border p-2 my-2"><input id="teacherEmail" placeholder="Email" class="w-full border p-2 my-2"><input id="teacherSubject" placeholder="Matière" class="w-full border p-2 my-2"><select id="teacherStatus"><option>permanent</option><option>missionnaire</option></select><input id="teacherHours" type="number" step="0.5" placeholder="Heures max" class="w-full border p-2 mt-2"><div class="flex justify-end gap-2 mt-4"><button onclick="closeTeacherModal()" class="bg-gray-300 px-4 py-2 rounded">Annuler</button><button id="saveTeacherBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Enregistrer</button></div></div></div>`;
         document.getElementById('adminDynamicContent').innerHTML = html;
         document.getElementById('saveTeacherBtn')?.addEventListener('click', saveTeacher);
     }
     function openTeacherModal(id=null) {
         editTeacherId = id; const modal = document.getElementById('teacherModal');
-        if(id) { const t=teachers.find(t=>t.id===id); if(t){ document.getElementById('teacherId').value=t.id; document.getElementById('teacherName').value=t.name; document.getElementById('teacherEmail').value=t.email; document.getElementById('teacherSubject').value=t.subject||''; document.getElementById('teacherStatus').value=t.status; document.getElementById('teacherHours').value=t.hoursPerWeek; document.getElementById('teacherModalTitle').innerText="Modifier"; } }
-        else { document.getElementById('teacherId').value=''; document.getElementById('teacherName').value=''; document.getElementById('teacherEmail').value=''; document.getElementById('teacherSubject').value=''; document.getElementById('teacherStatus').value='permanent'; document.getElementById('teacherHours').value=''; document.getElementById('teacherModalTitle').innerText="Ajouter"; }
+        if(id) { const t=teachers.find(t=>t.id===id); if(t){ document.getElementById('teacherId').value=t.id; document.getElementById('teacherName').value=t.name; document.getElementById('teacherEmail').value=t.email; document.getElementById('teacherSubject').value=t.subject||''; document.getElementById('teacherStatus').value=t.status; document.getElementById('teacherHours').value=t.hoursPerWeek; document.getElementById('teacherModalTitle').innerText="Modifier enseignant"; } }
+        else { document.getElementById('teacherId').value=''; document.getElementById('teacherName').value=''; document.getElementById('teacherEmail').value=''; document.getElementById('teacherSubject').value=''; document.getElementById('teacherStatus').value='permanent'; document.getElementById('teacherHours').value=''; document.getElementById('teacherModalTitle').innerText="Ajouter un enseignant"; }
         modal.classList.remove('hidden'); modal.classList.add('flex');
     }
     function closeTeacherModal() { document.getElementById('teacherModal').classList.add('hidden'); editTeacherId=null; }
@@ -388,9 +408,9 @@
     function editTeacher(id) { openTeacherModal(id); }
     async function deleteTeacherConfirm(id) { if(sessions.some(s=>s.teacherId===id)) { showToast("Enseignant lié à des séances","error"); return; } await deleteTeacher(id); }
 
-    // Salles
+    // ----- Gestion des salles -----
     function renderRoomsPage() {
-        if(currentRole!=='admin') return;
+        if(!isAdminLoggedIn) return;
         const html = `<div class="glass-card p-6"><div class="flex justify-between"><h2 class="text-2xl font-black">Salles</h2><button onclick="openRoomModal()" class="bg-green-600 text-white px-4 py-2 rounded-full">+ Ajouter</button></div><div class="grid grid-cols-2 gap-3 mt-4">${rooms.map(r=>`<div class="bg-white/70 p-3 rounded flex justify-between"><span>${r.name}</span><div><button onclick="editRoom('${r.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteRoomConfirm('${r.id}')" class="text-red-600"><i class="fas fa-trash"></i></button></div></div>`).join('')}</div></div>
         <div id="roomModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"><div class="bg-white p-6 rounded-2xl w-96"><h3 id="roomModalTitle">Salle</h3><input type="hidden" id="roomId"><input id="roomName" placeholder="Nom" class="w-full border p-2"><div class="flex justify-end gap-2 mt-4"><button onclick="closeRoomModal()" class="bg-gray-300 px-4 py-2 rounded">Annuler</button><button id="saveRoomBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Enregistrer</button></div></div></div>`;
         document.getElementById('adminDynamicContent').innerHTML = html;
@@ -398,8 +418,8 @@
     }
     function openRoomModal(id=null) {
         editRoomId = id; const modal = document.getElementById('roomModal');
-        if(id) { const r=rooms.find(r=>r.id===id); if(r){ document.getElementById('roomId').value=r.id; document.getElementById('roomName').value=r.name; document.getElementById('roomModalTitle').innerText="Modifier"; } }
-        else { document.getElementById('roomId').value=''; document.getElementById('roomName').value=''; document.getElementById('roomModalTitle').innerText="Ajouter"; }
+        if(id) { const r=rooms.find(r=>r.id===id); if(r){ document.getElementById('roomId').value=r.id; document.getElementById('roomName').value=r.name; document.getElementById('roomModalTitle').innerText="Modifier salle"; } }
+        else { document.getElementById('roomId').value=''; document.getElementById('roomName').value=''; document.getElementById('roomModalTitle').innerText="Ajouter une salle"; }
         modal.classList.remove('hidden'); modal.classList.add('flex');
     }
     function closeRoomModal() { document.getElementById('roomModal').classList.add('hidden'); editRoomId=null; }
@@ -407,9 +427,9 @@
     function editRoom(id) { openRoomModal(id); }
     async function deleteRoomConfirm(id) { if(sessions.some(s=>s.roomId===id)) { showToast("Salle utilisée","error"); return; } await deleteRoom(id); }
 
-    // Séances
+    // ----- Gestion des séances -----
     function renderSessionsPage() {
-        if(currentRole!=='admin') return;
+        if(!isAdminLoggedIn) return;
         const teacherOps = teachers.map(t=>`<option value="${t.id}">${t.name} (${t.hoursPerWeek}h)</option>`).join('');
         const roomOps = rooms.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
         const slotOps = SLOTS.filter(s=>!s.isPause).map(s=>`<option value="${s.debut}|${s.fin}">${s.label}</option>`).join('');
@@ -425,7 +445,7 @@
         <div><label>Nature</label><select id="sessionNature" class="w-full border p-2">${NATURES.map(n=>`<option ${sessData?.nature===n?'selected':''}>${n}</option>`).join('')}</select></div>
         <div><label>Statut</label><select id="sessionStatus" class="w-full border p-2"><option ${sessData?.status==='permanent'?'selected':''}>permanent</option><option ${sessData?.status==='missionnaire'?'selected':''}>missionnaire</option></select></div></div>
         <button onclick="saveSession()" class="bg-blue-700 text-white px-6 py-2 rounded-full mt-4">${isEditing?'Mettre à jour':'Créer'}</button>
-        <hr class="my-6"><h3 class="text-xl font-bold">Liste des séances</h3><div class="overflow-x-auto"><table class="w-full"><thead class="bg-blue-800 text-white"><tr><th>Matière</th><th>Niv.</th><th>Jour</th><th>Créneau</th><th>Nature</th><th>Enseignant</th><th>Salle</th><th></th></tr></thead><tbody>${sessions.map(s=>{const t=teachers.find(tt=>tt.id===s.teacherId); const r=rooms.find(rr=>rr.id===s.roomId); const slotL=SLOTS.find(sl=>sl.debut===s.start&&sl.fin===s.end)?.label||`${s.start}-${s.end}`; return `<tr><td>${s.subject}</td><td>${s.level}</td><td>${s.day}</td><td>${slotL}</td><td>${s.nature||'CT'}</td><td>${t?.name||'?'}</td><td>${r?.name||'?'}</td><td><button onclick="editSessionById('${s.id}')" class="text-blue-600"><i class="fas fa-edit"></i></button> <button onclick="deleteSessionConfirm('${s.id}')" class="text-red-600"><i class="fas fa-trash"></i></button></td></tr>`}).join('')}</tbody>}</div></div>`;
+        <hr class="my-6"><h3 class="text-xl font-bold">Liste des séances</h3><div class="overflow-x-auto"><table class="w-full"><thead class="bg-blue-800 text-white"><tr><th>Matière</th><th>Niv.</th><th>Jour</th><th>Créneau</th><th>Nature</th><th>Enseignant</th><th>Salle</th><th></th></tr></thead><tbody>${sessions.map(s=>{const t=teachers.find(tt=>tt.id===s.teacherId); const r=rooms.find(rr=>rr.id===s.roomId); const slotL=SLOTS.find(sl=>sl.debut===s.start&&sl.fin===s.end)?.label||`${s.start}-${s.end}`; return `<tr><td class="p-2">${s.subject}</td><td class="p-2">${s.level}</td><td class="p-2">${s.day}</td><td class="p-2">${slotL}</td><td class="p-2">${s.nature||'CT'}</td><td class="p-2">${t?.name||'?'}</td><td class="p-2">${r?.name||'?'}</td><td class="p-2"><button onclick="editSessionById('${s.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteSessionConfirm('${s.id}')" class="text-red-600"><i class="fas fa-trash"></i></button></td></tr>`}).join('')}</tbody></table></div></div>`;
         document.getElementById('adminDynamicContent').innerHTML = html;
         if(sessData && !isEditing) { const sel = document.getElementById('sessionSlot'); if(sel && sessData.start) sel.value = `${sessData.start}|${sessData.end}`; }
     }
@@ -468,7 +488,7 @@
         document.querySelectorAll('.sidebar-item').forEach(el=>{ el.classList.remove('active'); if(el.getAttribute('data-page')===currentPage) el.classList.add('active'); });
     }
 
-    // ----- Vue publique : écoute temps réel + gestion du téléchargement -----
+    // ----- Vue publique : écoute temps réel et téléchargement -----
     function startPublicListener() {
         if(unsubscribePublication) unsubscribePublication();
         unsubscribePublication = db.collection('publication').doc('all').onSnapshot(doc => {
@@ -485,7 +505,6 @@
         });
     }
 
-    // Fonction de téléchargement du fichier publié (HTML complet)
     function downloadPublishedFile() {
         if (!currentPublishedHtml) {
             showToast("Aucun emploi du temps publié à télécharger.", "error");
@@ -503,79 +522,84 @@
         showToast("Téléchargement démarré (fichier HTML complet).");
     }
 
-    // ----- Connexion / déconnexion -----
-    function login(role) {
-        const email = document.getElementById('loginEmail').value.trim();
-        if(!email || !/^[^\s@]+@([^\s@]+\.)+[^\s@]+$/.test(email)) return showToast("Email invalide","error");
-        if(role==='admin' && email!=='insta@gmail.com') return showToast("Accès admin refusé","error");
-        currentRole = role;
-        localStorage.setItem('userRole', role);
-        localStorage.setItem('userEmail', email);
-        document.getElementById('loginOverlay').style.opacity = '0';
-        setTimeout(() => {
-            document.getElementById('loginOverlay').style.display = 'none';
-            if(role === 'admin') {
-                document.getElementById('adminApp').style.display = 'block';
-                document.getElementById('publicView').style.display = 'none';
-                updateSidebarLogo();
-                startAdminListeners();
-                renderCurrentPage();
-                if(unsubscribePublication) unsubscribePublication();
-            } else {
-                document.getElementById('adminApp').style.display = 'none';
-                document.getElementById('publicView').style.display = 'block';
-                startPublicListener();
-                // Attacher l'événement de téléchargement
-                const downloadBtn = document.getElementById('downloadPublishedBtn');
-                if (downloadBtn) downloadBtn.onclick = downloadPublishedFile;
-            }
-        }, 500);
+    // ----- Gestion de la connexion admin locale -----
+    function showAdminLoginModal() {
+        document.getElementById('adminLoginModal').classList.remove('hidden');
+        document.getElementById('adminLoginModal').classList.add('flex');
     }
-    function logout() {
-        currentRole = null;
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('userEmail');
-        document.getElementById('adminApp').style.display = 'none';
-        document.getElementById('publicView').style.display = 'none';
-        if(unsubscribeTeachers) unsubscribeTeachers();
-        if(unsubscribeRooms) unsubscribeRooms();
-        if(unsubscribeSessions) unsubscribeSessions();
-        if(unsubscribePublication) unsubscribePublication();
-        document.getElementById('loginOverlay').style.display = 'flex';
-        document.getElementById('loginOverlay').style.opacity = '1';
-        teachers = []; rooms = []; sessions = [];
-        currentPublishedHtml = null;
-    }
-    // Événements globaux
-    document.getElementById('logoutBtn')?.addEventListener('click', logout);
-    document.getElementById('homeBtn')?.addEventListener('click', logout);
-    document.getElementById('logoutFromPublic')?.addEventListener('click', logout);
-    document.getElementById('resetDataBtn')?.addEventListener('click', ()=>{ if(confirm("Réinitialiser toutes les données ?")) resetAll(); });
-    document.querySelectorAll('.role-btn').forEach(btn=>btn.addEventListener('click',()=>login(btn.getAttribute('data-role'))));
-    document.querySelectorAll('.sidebar-item').forEach(link=>link.addEventListener('click',e=>{ e.preventDefault(); const p=link.getAttribute('data-page'); if(p) navigateTo(p); }));
 
-    // Initialisation
-    if(currentRole && localStorage.getItem('userEmail')) {
-        if(currentRole === 'admin') {
-            document.getElementById('loginOverlay').style.display = 'none';
+    function loginAdmin(email, password) {
+        if (email === 'insta@gmail.com' && password === ADMIN_PASSWORD) {
+            isAdminLoggedIn = true;
+            localStorage.setItem('isAdminLoggedIn', 'true');
+            document.getElementById('publicView').style.display = 'none';
+            document.getElementById('adminApp').style.display = 'block';
+            updateSidebarLogo();
+            startAdminListeners();
+            renderCurrentPage();
+            showToast("Connexion admin réussie");
+            return true;
+        } else {
+            showToast("Email ou mot de passe incorrect", "error");
+            return false;
+        }
+    }
+
+    function logoutAdmin() {
+        isAdminLoggedIn = false;
+        localStorage.removeItem('isAdminLoggedIn');
+        if (unsubscribeTeachers) unsubscribeTeachers();
+        if (unsubscribeRooms) unsubscribeRooms();
+        if (unsubscribeSessions) unsubscribeSessions();
+        document.getElementById('adminApp').style.display = 'none';
+        document.getElementById('publicView').style.display = 'block';
+        startPublicListener();
+        showToast("Déconnecté");
+    }
+
+    // Événements DOM
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialiser l'affichage selon l'état de connexion stocké
+        if (isAdminLoggedIn) {
+            document.getElementById('publicView').style.display = 'none';
             document.getElementById('adminApp').style.display = 'block';
             updateSidebarLogo();
             startAdminListeners();
             renderCurrentPage();
         } else {
-            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('adminApp').style.display = 'none';
             document.getElementById('publicView').style.display = 'block';
             startPublicListener();
-            setTimeout(() => {
-                const downloadBtn = document.getElementById('downloadPublishedBtn');
-                if (downloadBtn) downloadBtn.onclick = downloadPublishedFile;
-            }, 100);
         }
-    } else {
-        document.getElementById('loginOverlay').style.display = 'flex';
-        document.getElementById('adminApp').style.display = 'none';
-        document.getElementById('publicView').style.display = 'none';
-    }
+
+        // Boutons
+        document.getElementById('showAdminLoginBtn')?.addEventListener('click', showAdminLoginModal);
+        document.getElementById('closeLoginModal')?.addEventListener('click', () => {
+            document.getElementById('adminLoginModal').classList.add('hidden');
+        });
+        document.getElementById('submitLoginBtn')?.addEventListener('click', () => {
+            const email = document.getElementById('loginEmail').value.trim();
+            const pwd = document.getElementById('loginPassword').value;
+            if (loginAdmin(email, pwd)) {
+                document.getElementById('adminLoginModal').classList.add('hidden');
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
+            }
+        });
+        document.getElementById('logoutAdminBtn')?.addEventListener('click', logoutAdmin);
+        document.getElementById('resetDataBtn')?.addEventListener('click', () => { if(confirm("Réinitialiser toutes les données ?")) resetAll(); });
+        document.getElementById('downloadPublishedBtn')?.addEventListener('click', downloadPublishedFile);
+
+        // Délégation pour la sidebar
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('.sidebar-item');
+            if (link && link.getAttribute('data-page')) {
+                e.preventDefault();
+                const page = link.getAttribute('data-page');
+                if (page) navigateTo(page);
+            }
+        });
+    });
 </script>
 </body>
 </html>
