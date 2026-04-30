@@ -539,12 +539,6 @@
             }
             fullHtml += `</body></html>`;
 
-            // Sauvegarde facultative (commentée par défaut)
-            // try {
-            //     const blob = new Blob([fullHtml], { type: 'text/html' });
-            //     await savePDFToStorage(blob, 'tous_niveaux', `Emplois_du_temps_complets_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}`);
-            // } catch(e) { console.warn("Archivage ignoré", e); }
-
             const win = window.open();
             win.document.write(fullHtml);
             win.document.close();
@@ -629,7 +623,7 @@
         const subjectOptions = SUBJECTS.map(subj => `<option value="${subj}">${subj}</option>`).join('');
         const html = `
         <div class="glass-card p-6"><div class="flex justify-between"><h2 class="text-2xl font-black">Enseignants</h2><button onclick="openTeacherModal()" class="bg-green-600 text-white px-4 py-2 rounded-full">+ Ajouter</button></div>
-        <div class="overflow-x-auto mt-4"><table class="min-w-full bg-white/60"><thead class="bg-blue-800 text-white"><tr><th>Nom</th><th>Email</th><th>Matière</th><th>Statut</th><th>Heures/semaine</th><th>Actions</th></tr></thead><tbody>${teachers.map(t=>`<tr><td class="p-2">${t.name}</td><td class="p-2">${t.email}</td><td class="p-2">${t.subject||''}</td><td class="p-2">${t.status}</td><td class="p-2">${getTeacherWeeklyHours(t.id).toFixed(1)}/${t.hoursPerWeek}h</td><td class="p-2"><button onclick="editTeacher('${t.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteTeacherConfirm('${t.id}')" class="text-red-600"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody>}</div></div>
+        <div class="overflow-x-auto mt-4"><table class="min-w-full bg-white/60"><thead class="bg-blue-800 text-white"><tr><th>Nom</th><th>Email</th><th>Matière</th><th>Statut</th><th>Heures/semaine</th><th>Actions</th></tr></thead><tbody>${teachers.map(t=>`<tr><td class="p-2">${t.name}</td><td class="p-2">${t.email}</td><td class="p-2">${t.subject||''}</td><td class="p-2">${t.status}</td><td class="p-2">${getTeacherWeeklyHours(t.id).toFixed(1)}/${t.hoursPerWeek}h</td><td class="p-2"><button onclick="editTeacher('${t.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteTeacherConfirm('${t.id}')" class="text-red-600"><i class="fas fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div></div>
         <div id="teacherModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"><div class="bg-white"><h3 id="teacherModalTitle">Enseignant</h3><input type="hidden" id="teacherId"><input id="teacherName" placeholder="Nom" class="w-full border"><input id="teacherEmail" placeholder="Email" class="w-full border"><select id="teacherSubject" class="w-full border"><option value="">-- Sélectionnez une matière --</option>${subjectOptions}</select><select id="teacherStatus"><option>permanent</option><option>missionnaire</option></select><input id="teacherHours" type="number" step="0.5" placeholder="Heures max / semaine" class="w-full border"><div class="flex justify-end gap-2"><button onclick="closeTeacherModal()" class="bg-gray-300 px-4 py-2 rounded">Annuler</button><button id="saveTeacherBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Enregistrer</button></div></div></div>`;
         document.getElementById('adminDynamicContent').innerHTML = html;
         document.getElementById('saveTeacherBtn')?.addEventListener('click', saveTeacher);
@@ -701,47 +695,140 @@
     function editRoom(id) { openRoomModal(id); }
     async function deleteRoomConfirm(id) { if(sessions.some(s=>s.roomId===id)) { showToast("Salle utilisée","error"); return; } await deleteRoom(id); }
 
-    // ----- Gestion des séances (matière liée à l'enseignant) -----
+    // ----- Gestion des séances (matière liée à l'enseignant) AVEC VALIDATION EN TEMPS RÉEL -----
     function renderSessionsPage() {
-        if(!isAdminLoggedIn) return;
-        const teacherOps = teachers.map(t=>`<option value="${t.id}" data-subject="${t.subject}">${t.name} (${t.subject})</option>`).join('');
-        const roomOps = rooms.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
-        const slotOps = SLOTS.filter(s=>!s.isPause).map(s=>`<option value="${s.debut}|${s.fin}">${s.label}</option>`).join('');
-        const isEditing = editSessionId!==null;
-        const sessData = isEditing ? sessions.find(s=>s.id===editSessionId) : null;
-        // Prépare la matière pour l'affichage (si édition)
+        if (!isAdminLoggedIn) return;
+        const teacherOps = teachers.map(t => `<option value="${t.id}" data-subject="${t.subject}">${t.name} (${t.subject})</option>`).join('');
+        const roomOps = rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+        const slotOps = SLOTS.filter(s => !s.isPause).map(s => `<option value="${s.debut}|${s.fin}">${s.label}</option>`).join('');
+        const isEditing = editSessionId !== null;
+        const sessData = isEditing ? sessions.find(s => s.id === editSessionId) : null;
         const selectedTeacherId = sessData ? sessData.teacherId : "";
-        const selectedTeacher = teachers.find(t=>t.id===selectedTeacherId);
+        const selectedTeacher = teachers.find(t => t.id === selectedTeacherId);
         const defaultSubject = selectedTeacher ? selectedTeacher.subject : "";
-        const html = `<div class="glass-card p-6"><div class="flex justify-between"><h2 class="text-2xl font-black">${isEditing?'Modifier séance':'Nouvelle séance'}</h2>${isEditing?'<button onclick="cancelEditSession()" class="bg-gray-300 px-3 py-1 rounded">Annuler</button>':''}</div>
-        <div class="grid grid-cols-2 gap-4 mt-4"><div><label>Matière</label><input id="sessionSubject" value="${sessData?.subject||defaultSubject}" class="w-full border p-2 bg-gray-100" readonly></div>
-        <div><label>Niveau</label><select id="sessionLevel" class="w-full border p-2">${LEVELS.map(l=>`<option ${sessData?.level===l?'selected':''}>${l}</option>`).join('')}</select></div>
-        <div><label>Jour</label><select id="sessionDay" class="w-full border p-2">${JOURS.map(d=>`<option ${sessData?.day===d?'selected':''}>${d}</option>`).join('')}</select></div>
-        <div><label>Créneau</label><select id="sessionSlot" class="w-full border p-2">${slotOps}</select></div>
-        <div><label>Enseignant</label><select id="sessionTeacher" class="w-full border p-2">${teacherOps}</select></div>
-        <div><label>Salle</label><select id="sessionRoom" class="w-full border p-2">${roomOps}</select></div>
-        <div><label>Nature</label><select id="sessionNature" class="w-full border p-2">${NATURES.map(n=>`<option ${sessData?.nature===n?'selected':''}>${n}</option>`).join('')}</select></div>
-        <div><label>Statut</label><select id="sessionStatus" class="w-full border p-2"><option ${sessData?.status==='permanent'?'selected':''}>permanent</option><option ${sessData?.status==='missionnaire'?'selected':''}>missionnaire</option></select></div></div>
-        <button onclick="saveSession()" class="bg-blue-700 text-white px-6 py-2 rounded-full mt-4">${isEditing?'Mettre à jour':'Créer'}</button>
-        <hr class="my-6"><h3 class="text-xl font-bold">Liste des séances</h3><div class="overflow-x-auto"><table class="w-full"><thead class="bg-blue-800 text-white"><tr><th>Matière</th><th>Niv.</th><th>Jour</th><th>Créneau</th><th>Nature</th><th>Enseignant</th><th>Salle</th><th></th></tr></thead><tbody>${sessions.map(s=>{const t=teachers.find(tt=>tt.id===s.teacherId); const r=rooms.find(rr=>rr.id===s.roomId); const slotL=SLOTS.find(sl=>sl.debut===s.start&&sl.fin===s.end)?.label||`${s.start}-${s.end}`; return `<tr><td class="p-2">${s.subject}</td><td class="p-2">${s.level}</td><td class="p-2">${s.day}</td><td class="p-2">${slotL}</td><td class="p-2">${s.nature||'CT'}</td><td class="p-2">${t?.name||'?'} (${t?.subject||''})</td><td class="p-2">${r?.name||'?'}</td><td class="p-2"><button onclick="editSessionById('${s.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteSessionConfirm('${s.id}')" class="text-red-600"><i class="fas fa-trash"></i></button></td></tr>`}).join('')}</tbody>}</div></div>`;
+
+        const html = `
+        <div class="glass-card p-6">
+            <div class="flex justify-between">
+                <h2 class="text-2xl font-black">${isEditing ? 'Modifier séance' : 'Nouvelle séance'}</h2>
+                ${isEditing ? '<button onclick="cancelEditSession()" class="bg-gray-300 px-3 py-1 rounded">Annuler</button>' : ''}
+            </div>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div><label>Matière</label><input id="sessionSubject" value="${sessData?.subject || defaultSubject}" class="w-full border p-2 bg-gray-100" readonly></div>
+                <div><label>Niveau</label><select id="sessionLevel" class="w-full border p-2">${LEVELS.map(l => `<option ${sessData?.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+                <div><label>Jour</label><select id="sessionDay" class="w-full border p-2">${JOURS.map(d => `<option ${sessData?.day === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+                <div><label>Créneau</label><select id="sessionSlot" class="w-full border p-2">${slotOps}</select></div>
+                <div><label>Enseignant</label><select id="sessionTeacher" class="w-full border p-2">${teacherOps}</select></div>
+                <div><label>Salle</label><select id="sessionRoom" class="w-full border p-2">${roomOps}</select></div>
+                <div><label>Nature</label><select id="sessionNature" class="w-full border p-2">${NATURES.map(n => `<option ${sessData?.nature === n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+                <div><label>Statut</label><select id="sessionStatus" class="w-full border p-2"><option ${sessData?.status === 'permanent' ? 'selected' : ''}>permanent</option><option ${sessData?.status === 'missionnaire' ? 'selected' : ''}>missionnaire</option></select></div>
+            </div>
+            <div id="sessionConflictMessage" class="text-red-600 mt-2 font-bold"></div>
+            <button id="saveSessionBtn" class="bg-blue-700 text-white px-6 py-2 rounded-full mt-4" disabled>${isEditing ? 'Mettre à jour' : 'Créer'}</button>
+            <hr class="my-6">
+            <h3 class="text-xl font-bold">Liste des séances</h3>
+            <div class="overflow-x-auto"><table class="w-full"><thead class="bg-blue-800 text-white"><tr><th>Matière</th><th>Niv.</th><th>Jour</th><th>Créneau</th><th>Nature</th><th>Enseignant</th><th>Salle</th><th></th></tr></thead><tbody>${sessions.map(s => {
+                const t = teachers.find(tt => tt.id === s.teacherId);
+                const r = rooms.find(rr => rr.id === s.roomId);
+                const slotL = SLOTS.find(sl => sl.debut === s.start && sl.fin === s.end)?.label || `${s.start}-${s.end}`;
+                return `<tr><td class="p-2">${s.subject}</td><td class="p-2">${s.level}</td><td class="p-2">${s.day}</td><td class="p-2">${slotL}</td><td class="p-2">${s.nature || 'CT'}</td><td class="p-2">${t?.name || '?'} (${t?.subject || ''})</td><td class="p-2">${r?.name || '?'}</td><td class="p-2"><button onclick="editSessionById('${s.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteSessionConfirm('${s.id}')" class="text-red-600"><i class="fas fa-trash"></i></button></td></tr>`;
+            }).join('')}</tbody></table></div>
+        </div>`;
+
         document.getElementById('adminDynamicContent').innerHTML = html;
-        // Ajout d'un événement pour mettre à jour la matière automatiquement quand l'enseignant change
+
+        // Récupération des éléments
         const teacherSelect = document.getElementById('sessionTeacher');
         const subjectField = document.getElementById('sessionSubject');
-        if(teacherSelect && subjectField) {
+        const daySelect = document.getElementById('sessionDay');
+        const slotSelect = document.getElementById('sessionSlot');
+        const levelSelect = document.getElementById('sessionLevel');
+        const roomSelect = document.getElementById('sessionRoom');
+        const natureSelect = document.getElementById('sessionNature');
+        const saveBtn = document.getElementById('saveSessionBtn');
+
+        // Mise à jour matière quand l'enseignant change
+        if (teacherSelect && subjectField) {
             teacherSelect.addEventListener('change', () => {
-                const selectedOption = teacherSelect.options[teacherSelect.selectedIndex];
-                const subject = selectedOption.getAttribute('data-subject') || '';
-                subjectField.value = subject;
-            });
-            // Déclencher pour initialiser
-            if(teacherSelect.value) {
                 const opt = teacherSelect.options[teacherSelect.selectedIndex];
-                if(opt) subjectField.value = opt.getAttribute('data-subject') || '';
+                subjectField.value = opt.getAttribute('data-subject') || '';
+                updateConflictStatus();
+            });
+            if (teacherSelect.value) {
+                const opt = teacherSelect.options[teacherSelect.selectedIndex];
+                subjectField.value = opt.getAttribute('data-subject') || '';
             }
         }
-        if(sessData && !isEditing) { const sel = document.getElementById('sessionSlot'); if(sel && sessData.start) sel.value = `${sessData.start}|${sessData.end}`; }
+
+        // Fonction de validation en temps réel
+        function updateConflictStatus() {
+            if (!teacherSelect.value || !roomSelect.value || !slotSelect.value) {
+                document.getElementById('sessionConflictMessage').innerText = 'Veuillez sélectionner tous les champs.';
+                if (saveBtn) saveBtn.disabled = true;
+                return;
+            }
+
+            const day = daySelect.value;
+            const slot = slotSelect.value;
+            const [start, end] = slot.split('|');
+            const level = levelSelect.value;
+            const teacherId = teacherSelect.value;
+            const roomId = roomSelect.value;
+            const nature = natureSelect.value;
+            const teacher = teachers.find(t => t.id === teacherId);
+            if (!teacher) return;
+
+            // 1. Vérification des conflits (salle, enseignant, niveau, examens)
+            const tempSession = {
+                teacherId, roomId, subject: teacher.subject,
+                day, start, end, level, nature,
+                id: editSessionId || 'temp'
+            };
+            const conflictResult = checkConflict(tempSession, editSessionId);
+            let errorMsg = conflictResult.conflict ? conflictResult.message : '';
+
+            // 2. Vérification des heures hebdomadaires de l'enseignant
+            const duration = getDurationHours(start, end);
+            let currentHours = getTeacherWeeklyHours(teacherId, editSessionId);
+            if (currentHours + duration > teacher.hoursPerWeek + 0.01) {
+                errorMsg = `Dépassement du quota horaire (${teacher.hoursPerWeek}h max). Utilisé : ${currentHours.toFixed(1)}h, ajout : ${duration}h.`;
+            }
+
+            // 3. Cohérence matière
+            if (subjectField.value !== teacher.subject) {
+                errorMsg = `La matière "${subjectField.value}" ne correspond pas à celle de l'enseignant (${teacher.subject}).`;
+            }
+
+            const msgDiv = document.getElementById('sessionConflictMessage');
+            if (errorMsg) {
+                msgDiv.innerText = '❌ ' + errorMsg;
+                if (saveBtn) saveBtn.disabled = true;
+            } else {
+                msgDiv.innerText = '✅ Aucun conflit détecté.';
+                if (saveBtn) saveBtn.disabled = false;
+            }
+        }
+
+        // Attacher les écouteurs sur tous les champs influençant les conflits
+        const conflictFields = [daySelect, slotSelect, levelSelect, teacherSelect, roomSelect, natureSelect];
+        conflictFields.forEach(field => {
+            if (field) field.addEventListener('change', updateConflictStatus);
+        });
+
+        // Initialiser l'état
+        if (!isEditing && sessData && slotSelect && sessData.start) {
+            slotSelect.value = `${sessData.start}|${sessData.end}`;
+        }
+        updateConflictStatus();
+
+        // Sauvegarde (bouton cloné pour éviter doublons)
+        if (saveBtn) {
+            const newSaveBtn = saveBtn.cloneNode(true);
+            saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+            newSaveBtn.addEventListener('click', saveSession);
+        }
     }
+
     async function saveSession() {
         const subject = document.getElementById('sessionSubject').value.trim();
         const level = document.getElementById('sessionLevel').value;
